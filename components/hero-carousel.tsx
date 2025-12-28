@@ -1,0 +1,55 @@
+"use client"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+
+const banners = [
+  {
+    title: "Handloom Heritage",
+    subtitle: "Discover Mapita's finest woven products",
+    image: "/handloom-weaving-texture.jpg",
+    color: "bg-blue-900",
+  },
+  {
+    title: "Aguilar Delicacies",
+    subtitle: "Taste the local flavors of Aguilar",
+    image: "/local-filipino-food-delicacies.jpg",
+    color: "bg-amber-800",
+  },
+  {
+    title: "Support Local Crafts",
+    subtitle: "Unique handmade accessories for every occasion",
+    image: "/handmade-beaded-jewelry.jpg",
+    color: "bg-emerald-900",
+  },
+]
+
+export function HeroCarousel() {
+  return (
+    <section className="container mx-auto px-4 py-6">
+      <Carousel className="w-full overflow-hidden rounded-xl shadow-lg">
+        <CarouselContent>
+          {banners.map((banner, index) => (
+            <CarouselItem key={index}>
+              <div className="relative h-[400px] w-full">
+                <img
+                  src={banner.image || "/placeholder.svg"}
+                  alt={banner.title}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute inset-0 flex flex-col items-start justify-center p-12 text-white">
+                  <h2 className="text-4xl font-bold md:text-5xl">{banner.title}</h2>
+                  <p className="mt-4 text-xl opacity-90">{banner.subtitle}</p>
+                  <button className="mt-8 rounded-md bg-accent px-8 py-3 font-bold text-accent-foreground transition-all hover:scale-105">
+                    Shop Now
+                  </button>
+                </div>
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="left-4" />
+        <CarouselNext className="right-4" />
+      </Carousel>
+    </section>
+  )
+}
