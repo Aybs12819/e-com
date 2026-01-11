@@ -116,8 +116,26 @@ export default function AuthPage() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Success", description: "Account created successfully! Please log in." });
-      router.push("/auth"); // Redirect to login page
+      // Automatically sign in the user after profile completion
+      let signInOptions: { email: string; password: string } | { phone: string; password: string };
+
+      if (registrationMethod === 'email') {
+        signInOptions = { email: email, password: password };
+      } else {
+        signInOptions = { phone: phoneNumber, password: password };
+      }
+
+      const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword(signInOptions);
+
+      if (signInError) {
+        toast({ title: "Error", description: signInError.message, variant: "destructive" });
+      } else if (signInData.user) {
+        toast({ title: "Success", description: "Account created successfully! Redirecting to dashboard." });
+        handleSuccessfulLogin(signInData.user); // Redirect to appropriate dashboard
+      } else {
+        toast({ title: "Success", description: "Account created successfully! Please log in." });
+        router.push("/auth"); // Fallback to login if auto-signin fails
+      }
     }
     setLoading(false);
   };

@@ -51,11 +51,11 @@ export function AssignRiderDialog({ orderId, riders, isOpen, onClose }: AssignRi
 
     const { error } = await supabase
       .from("orders")
-      .update({ rider_id: selectedRider, status: "assigned" })
+      .update({ rider_id: selectedRider })
       .eq("id", orderId);
 
     if (error) {
-      console.error("Error assigning rider:", error);
+      console.error("Error assigning rider:", error.message);
       toast({
         title: "Assignment Failed",
         description: `Failed to assign rider: ${error.message}`,

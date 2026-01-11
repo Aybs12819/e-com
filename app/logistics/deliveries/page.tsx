@@ -44,7 +44,24 @@ const DeliveriesPage = async () => {
       customer: [order.customer_accounts?.first_name, order.customer_accounts?.middle_name, order.customer_accounts?.last_name]
         .filter(Boolean)
         .join(" ") || "N/A",
-      address: order.shipping_address,
+      address: (() => {
+        if (typeof order.shipping_address === 'object' && order.shipping_address !== null) {
+          const { street, city, country } = order.shipping_address as { street: string, city: string, country: string };
+          return `${street}, ${city}, ${country}`;
+        } else if (typeof order.shipping_address === 'string') {
+          try {
+            const parsedAddress = JSON.parse(order.shipping_address);
+            if (typeof parsedAddress === 'object' && parsedAddress !== null && 'street' in parsedAddress && 'city' in parsedAddress && 'country' in parsedAddress) {
+              return `${parsedAddress.street}, ${parsedAddress.city}, ${parsedAddress.country}`;
+            } else {
+              return order.shipping_address;
+            }
+          } catch (e) {
+            return order.shipping_address;
+          }
+        }
+        return "N/A";
+      })(),
       status: order.status,
     };
   });
@@ -52,12 +69,12 @@ const DeliveriesPage = async () => {
   return (
     <div className="flex h-screen bg-gray-100">
       <LogisticsSidebar />
-      <div className="flex-1 p-6 ml-64">
+      <div className="flex-1 p-6 ml-64 flex flex-col">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Deliveries</h1>
           <p className="text-sm text-muted-foreground">Manage and view all deliveries and their statuses.</p>
         </div>
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-y-auto overflow-x-auto flex-grow">
           <Table>
             <TableHeader>
               <TableRow>

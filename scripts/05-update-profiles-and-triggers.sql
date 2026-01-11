@@ -69,3 +69,7 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_updated
   after update on auth.users
   for each row execute procedure public.handle_user_metadata_update();
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();

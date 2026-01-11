@@ -12,6 +12,13 @@ create table customer_accounts (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+alter table public.customer_accounts
+alter column first_name drop not null,
+alter column middle_name drop not null,
+alter column last_name drop not null,
+alter column birthdate drop not null,
+alter column address drop not null;
+
 -- RLS Policies for customer_accounts
 alter table customer_accounts enable row level security;
 
