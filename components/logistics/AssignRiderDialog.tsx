@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import {
@@ -22,15 +22,20 @@ import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Rider } from "@/lib/types"; // Import the shared Rider interface
- 
- interface AssignRiderDialogProps {
-   orderId: string;
-   riders: Rider[];
-   isOpen: boolean;
-   onClose: () => void;
- }
 
-export function AssignRiderDialog({ orderId, riders, isOpen, onClose }: AssignRiderDialogProps) {
+interface AssignRiderDialogProps {
+  orderId: string;
+  riders: Rider[];
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function AssignRiderDialog({
+  orderId,
+  riders,
+  isOpen,
+  onClose,
+}: AssignRiderDialogProps) {
   const [selectedRider, setSelectedRider] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
   // const supabase = createClient(); // This line was incorrect and has been removed
@@ -51,7 +56,7 @@ export function AssignRiderDialog({ orderId, riders, isOpen, onClose }: AssignRi
 
     const { error } = await supabase
       .from("orders")
-      .update({ rider_id: selectedRider })
+      .update({ rider_id: selectedRider, status: "delivery rider assigned" })
       .eq("id", orderId);
 
     if (error) {
@@ -63,13 +68,15 @@ export function AssignRiderDialog({ orderId, riders, isOpen, onClose }: AssignRi
       });
     } else {
       // Insert into deliveries table
-      const { error: deliveryError } = await supabase.from("deliveries").insert([
-        {
-          order_id: orderId,
-          rider_id: selectedRider,
-          status: "assigned",
-        },
-      ]);
+      const { error: deliveryError } = await supabase
+        .from("deliveries")
+        .insert([
+          {
+            order_id: orderId,
+            rider_id: selectedRider,
+            status: "assigned",
+          },
+        ]);
 
       if (deliveryError) {
         console.error("Error creating delivery record:", deliveryError);
@@ -104,7 +111,11 @@ export function AssignRiderDialog({ orderId, riders, isOpen, onClose }: AssignRi
             <Label htmlFor="rider" className="text-right">
               Rider
             </Label>
-            <Select onValueChange={setSelectedRider} value={selectedRider || ""} disabled={isAssigning}>
+            <Select
+              onValueChange={setSelectedRider}
+              value={selectedRider || ""}
+              disabled={isAssigning}
+            >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a rider" />
               </SelectTrigger>
@@ -122,7 +133,10 @@ export function AssignRiderDialog({ orderId, riders, isOpen, onClose }: AssignRi
           <Button variant="outline" onClick={onClose} disabled={isAssigning}>
             Cancel
           </Button>
-          <Button onClick={handleAssign} disabled={!selectedRider || isAssigning}>
+          <Button
+            onClick={handleAssign}
+            disabled={!selectedRider || isAssigning}
+          >
             {isAssigning ? "Assigning..." : "Assign"}
           </Button>
         </DialogFooter>
