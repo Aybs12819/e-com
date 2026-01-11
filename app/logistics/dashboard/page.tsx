@@ -95,7 +95,9 @@ export default async function LogisticsDashboard() {
                     <TableCell>
                       {`${order.customer_accounts?.first_name} ${order.customer_accounts?.middle_name ? order.customer_accounts.middle_name + ' ' : ''}${order.customer_accounts?.last_name}`}
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-xs">{order.shipping_address}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs">
+                      {JSON.stringify(order.shipping_address)}
+                    </TableCell>
                     <TableCell>
                       <AssignRiderButton orderId={order.id} riders={riders} />
                     </TableCell>

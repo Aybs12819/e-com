@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getShippingFee, shippingFees } from "@/lib/shipping";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -17,8 +18,10 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null) // New state for selected image
+  const { toast } = useToast(); // Initialize useToast here
   const [selectedVariants, setSelectedVariants] = useState<{ [key: string]: string }>({}); // State for selected variants
   const [displayPrice, setDisplayPrice] = useState<number | null>(null); // State for dynamically displayed price // customerDetails and isModalOpen states were already removed.
+  const [displayStock, setDisplayStock] = useState<number | null>(null); // State for dynamically displayed stock
   const [userAddress, setUserAddress] = useState<string | null>(null) // State for user address
   const [shippingFee, setShippingFee] = useState<number | null>(null);
   const [isAddressParsable, setIsAddressParsable] = useState<boolean>(false);
@@ -62,6 +65,24 @@ export default function ProductDetailPage() {
   }, [supabase, setUserAddress, setIsLoadingAddress]);
 
 
+
+  useEffect(() => {
+    if (product && product.variantCombinations && Object.keys(selectedVariants).length > 0) {
+      const selectedCombinationString = Object.values(selectedVariants).join(" - ");
+      const matchedCombination = product.variantCombinations.find(
+        (combination: any) => combination.combination === selectedCombinationString
+      );
+      if (matchedCombination) {
+        setDisplayStock(matchedCombination.stock);
+      } else {
+        setDisplayStock(0); // Or some other default if no match
+      }
+    } else if (product && product.variantCombinations) {
+      // If no variants are selected, display the total stock
+      const totalStock = product.variantCombinations.reduce((total: number, combination: any) => total + combination.stock, 0);
+      setDisplayStock(totalStock);
+    }
+  }, [selectedVariants, product]);
 
   useEffect(() => {
     getUserSession()
@@ -110,50 +131,77 @@ export default function ProductDetailPage() {
     }
   }, [userAddress]);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true)
-      const { data: productData, error: productError } = await supabase
-          .from("products")
-          .select("*, categories(*), product_variations(*)")
-          .eq("slug", slug)
-          .single()
+  const fetchProduct = useCallback(async () => {
+    setLoading(true)
+    const { data: productData, error: productError } = await supabase
+        .from("products")
+        .select("*, categories(*), product_variations(*), variant_combinations")
+        .eq("slug", slug)
+        .single()
 
-      if (productError) {
-        setError(productError.message)
-        setLoading(false)
-        return
-      }
-
-      if (productData) {
-        let soldCount = 0;
-        // Only fetch sold_count if productData.id is a valid UUID
-        if (productData.id && typeof productData.id === 'string' && productData.id.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
-
-          const { data: soldCountData, error: soldCountError } = await supabase
-            .rpc('get_product_sold_count', { p_product_id: productData.id });
-
-          if (soldCountData && !soldCountError) {
-            soldCount = soldCountData;
-          } else if (soldCountError) {
-            console.error("Error fetching sold count:", soldCountError.message);
-          }
-        } else {
-          console.warn("Skipping sold count fetch due to invalid productData.id:", productData.id);
-        }
-
-        const finalProductData = { ...productData, sold_count: soldCount };
-        setProduct(finalProductData);
-        setSelectedImage(finalProductData.image_urls?.[0] || null);
-        setDisplayPrice(finalProductData.base_price); // Initialize display price
-        console.log("Fetched product:", finalProductData); // Debugging line
-      } else {
-        setProduct(null);
-      }
+    if (productError) {
+      setError(productError.message)
       setLoading(false)
+      return
     }
+
+    if (productData) {
+      let soldCount = 0;
+      // Only fetch sold_count if productData.id is a valid UUID
+      if (productData.id && typeof productData.id === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(productData.id)) {
+
+        const { data: soldCountData, error: soldCountError } = await supabase
+          .rpc('get_product_sold_count', { p_product_id: productData.id });
+
+        if (soldCountData && !soldCountError) {
+          soldCount = soldCountData;
+        } else if (soldCountError) {
+          console.error("Error fetching sold count:", soldCountError.message);
+        }
+      } else {
+        console.warn("Skipping sold count fetch due to invalid productData.id:", productData.id);
+      }
+
+      const finalProductData = {
+        ...productData,
+        sold_count: soldCount,
+        variantCombinations: productData.variant_combinations || [], // Map snake_case to camelCase
+      };
+      setProduct(finalProductData);
+      setSelectedImage(finalProductData.image_urls?.[0] || null);
+      setDisplayPrice(finalProductData.base_price); // Initialize display price
+
+      // Initialize selected variants with the first available option for each type
+      if (finalProductData.product_variations && finalProductData.product_variations.length > 0) {
+        const initialSelected: { [key: string]: string } = {};
+        const groupedVariations = finalProductData.product_variations.reduce((acc: { [key: string]: string[] }, variation: any) => {
+          const { variation_name, variation_value } = variation;
+          if (!acc[variation_name]) {
+            acc[variation_name] = [];
+          }
+          if (!acc[variation_name].includes(variation_value)) {
+            acc[variation_name].push(variation_value);
+          }
+          return acc;
+        }, {});
+
+        for (const type in groupedVariations) {
+          if (groupedVariations[type].length > 0) {
+            initialSelected[type] = groupedVariations[type][0];
+          }
+        }
+        setSelectedVariants(initialSelected);
+      }
+      console.log("Fetched product:", finalProductData); // Debugging line
+    } else {
+      setProduct(null);
+    }
+    setLoading(false)
+  }, [slug, supabase]);
+
+  useEffect(() => {
     fetchProduct()
-  }, [slug, supabase])
+  }, [fetchProduct])
 
   useEffect(() => {
     if (product && product.product_variations?.length > 0) {
@@ -180,35 +228,23 @@ export default function ProductDetailPage() {
   }, [product]);
 
   useEffect(() => {
-    if (product && Object.keys(selectedVariants).length > 0) {
-      // Determine the order of variant types from the first combination in product.variant_combinations
-      // and map them to their corresponding variation names from product.product_variations
-      const variantTypeOrder = product.variant_combinations[0]?.combination
-        .split(" - ")
-        .map((value: string) => {
-          const matchingVariation = product.product_variations.find(
-            (pv: any) => pv.variation_value === value
-          );
-          return matchingVariation ? matchingVariation.variation_name : null;
-        })
-        .filter(Boolean); // Filter out any nulls if a variation name isn't found
+    if (product && product.variantCombinations) {
+      if (Object.keys(selectedVariants).length > 0) {
+        const selectedCombinationString = Object.values(selectedVariants).join(" - ");
+        const matchedCombination = product.variantCombinations.find(
+          (combination: any) => combination.combination === selectedCombinationString
+        );
 
-      // Construct the combination string from selectedVariants using the determined order
-      const selectedCombinationString = variantTypeOrder
-        .map((type: string) => selectedVariants[type])
-        .join(" - ");
-
-      const matchingCombination = product.variant_combinations.find((combination: any) => {
-        return combination.combination === selectedCombinationString;
-      });
-
-      if (matchingCombination) {
-        setDisplayPrice(matchingCombination.price);
+        if (matchedCombination) {
+          setDisplayStock(matchedCombination.stock);
+        } else {
+          setDisplayStock(0); // Or some other default if no match
+        }
       } else {
-        setDisplayPrice(product.base_price);
+        // If no variants are selected, display the total stock
+        const totalStock = product.variantCombinations.reduce((total: number, combination: any) => total + combination.stock, 0);
+        setDisplayStock(totalStock);
       }
-    } else if (product) {
-      setDisplayPrice(product.base_price);
     }
   }, [selectedVariants, product]);
 
@@ -376,15 +412,28 @@ export default function ProductDetailPage() {
       const result = await response.json()
 
       if (response.ok) {
-        alert(result.message)
-        // Redirect to the orders page
-        window.location.href = '/orders'
+        toast({
+          title: "Order Successful!",
+          description: "Redirecting to your orders...",
+        });
+        await fetchProduct(); // Re-fetch product data to update stock display
+        setTimeout(() => {
+          router.push("/orders");
+        }, 1000); // 1-second delay
       } else {
-        alert(`Error: ${result.error}`)
+        toast({
+          title: "Purchase Failed",
+          description: result.error || "An unknown error occurred.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error during buy now:', error)
-      alert('An unexpected error occurred. Please try again.')
+      console.error('Error during buy now:', error);
+      toast({
+        title: "Purchase Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     }
   }
 
@@ -461,7 +510,6 @@ export default function ProductDetailPage() {
                                 ...prev,
                                 [variationType]: value,
                               }));
-                              console.log("Selected Variants:", { ...selectedVariants, [variationType]: value });
                             }}
                           >
                             {value}
@@ -474,26 +522,22 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500 w-20">Shipping</span>
-              <div className="flex items-center gap-2 text-sm">
-                <Truck className="h-4 w-4 text-emerald-600" />
-                {isLoadingAddress ? (
-                  <p className="text-gray-500">Loading address...</p>
-                ) : showCalculatingShipping ? (
-                  <p className="text-gray-500">Calculating shipping...</p>
-                ) : shippingFee !== null ? (
-                  <p className="text-gray-800">
-                    Shipping Fee: {` ₱${shippingFee.toFixed(2)}`}
-                  </p>
-                ) : (
-                  <p className="text-gray-500">Calculating shipping...</p>
-                )}
-
+            {/* Dynamic Stock Display */}
+            {displayStock !== null && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>Stock: {displayStock}</span>
               </div>
-            </div>
+            )}
 
-            <div className="flex gap-4 pt-6">
+            {/* Shipping */}
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Truck className="h-4 w-4" />
+              <span>
+                Shipping Fee:{" "}
+                {shippingFee !== null ? ` ₱${shippingFee.toFixed(2)}` : "Calculating..."}
+              </span>
+            </div>
+          <div className="flex gap-4 pt-6">
               <Button
                 variant="outline"
                 size="lg"
@@ -517,7 +561,7 @@ export default function ProductDetailPage() {
               <div>100% Authentic</div>
             </div>
           </div>
-        </div>
+          </div>
 
         {/* Description Section */}
         <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
@@ -529,7 +573,7 @@ export default function ProductDetailPage() {
             </div>
             <div className="grid grid-cols-[150px_1fr] gap-4">
               <span className="text-gray-400">Stock</span>
-              <span>{product.product_variations?.reduce((total: number, variation: any) => total + variation.stock_quantity, 0) || 0}</span>
+              <span>{product.variantCombinations?.reduce((total: number, combination: any) => total + combination.stock, 0) || 0}</span>
             </div>
             <div className="grid grid-cols-[150px_1fr] gap-4">
               <span className="text-gray-400">Ships From</span>

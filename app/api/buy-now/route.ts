@@ -138,6 +138,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to set auth user ID', details: rpcError }, { status: 500 });
     }
 
+    // Decrement stock in variant_combinations if a specific combination was selected
+    if (selectedCombinationString && product.variant_combinations) {
+      const selectedCombination = product.variant_combinations.find(
+        (combination: any) => combination.combination === selectedCombinationString
+      );
+
+      if (!selectedCombination) {
+        return NextResponse.json({ error: 'Product variation not found for stock update' }, { status: 404 });
+      }
+
+      if (selectedCombination.stock < quantity) {
+        return NextResponse.json({ error: 'Insufficient stock for selected variation' }, { status: 400 });
+      }
+
+      const updatedVariantCombinations = product.variant_combinations.map((combination: any) => {
+        if (combination.combination === selectedCombinationString) {
+          return { ...combination, stock: combination.stock - quantity };
+        }
+        return combination;
+      });
+
+      const adminSupabase = createAdminClient();
+      const { error: updateStockError } = await adminSupabase
+        .from('products')
+        .update({ variant_combinations: updatedVariantCombinations })
+        .eq('id', productId);
+
+      if (updateStockError) {
+        console.error('Error updating product stock:', updateStockError);
+        return NextResponse.json({ error: 'Failed to update product stock' }, { status: 500 });
+      }
+    }
+
     // Revert temporary hardcoded UUID and console.log
     // Create a new order using the create_order RPC
     const shippingAddress = customerAccount?.address || {
