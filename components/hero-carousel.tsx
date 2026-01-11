@@ -1,5 +1,8 @@
 "use client"
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+import React from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay";
 
 const banners = [
   {
@@ -20,12 +23,23 @@ const banners = [
     image: "/handmade-beaded-jewelry.jpg",
     color: "bg-emerald-900",
   },
-]
+];
 
 export function HeroCarousel() {
+  const plugin = React.useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: false })
+  );
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [plugin.current]);
+
   return (
     <section className="container mx-auto px-4 py-6">
-      <Carousel className="w-full overflow-hidden rounded-xl shadow-lg">
+      <Carousel
+        plugins={[plugin.current]}
+        opts={{
+          align: "start",
+        }}
+        className="w-full overflow-hidden rounded-xl shadow-lg"
+      >
         <CarouselContent>
           {banners.map((banner, index) => (
             <CarouselItem key={index}>
@@ -47,8 +61,6 @@ export function HeroCarousel() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="left-4" />
-        <CarouselNext className="right-4" />
       </Carousel>
     </section>
   )

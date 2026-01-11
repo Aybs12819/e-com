@@ -4,11 +4,11 @@ create extension if not exists "uuid-ossp";
 -- 1. Profiles Table (Handles all user roles)
 create table profiles (
   id uuid references auth.users on delete cascade primary key,
+
+  role text check (role in ('admin', 'logistics', 'rider')) default 'admin',
   full_name text,
-  email text unique,
-  phone_number text unique,
-  role text check (role in ('admin', 'customer', 'logistics', 'rider')) default 'customer',
-  avatar_url text,
+  email text,
+  phone_number text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -42,6 +42,7 @@ create table product_variations (
   id uuid default uuid_generate_v4() primary key,
   product_id uuid references products(id) on delete cascade,
   variation_name text not null, -- e.g., 'Size', 'Color'
+  type text not null, -- e.g., 'Color', 'Size'
   variation_value text not null, -- e.g., 'Large', 'Blue'
   price_adjustment decimal(12,2) default 0,
   stock_quantity integer default 0,
@@ -57,6 +58,9 @@ alter table product_variations enable row level security;
 
 -- Public profiles are viewable by everyone
 create policy "Public profiles are viewable by everyone" on profiles for select using (true);
+
+-- Users can insert their own profile
+create policy "Users can insert their own profile" on profiles for insert with check (id = auth.uid());
 
 -- Categories are viewable by everyone
 create policy "Categories are viewable by everyone" on categories for select using (true);

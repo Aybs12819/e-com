@@ -1,0 +1,2 @@
+ALTER TABLE orders
+ADD COLUMN rider_id UUID REFERENCES profiles(id) ON DELETE SET NULL;

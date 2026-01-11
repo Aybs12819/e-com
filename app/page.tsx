@@ -1,49 +1,54 @@
+import { createClient } from '@/lib/supabase/server';
 import { Navbar } from "@/components/navbar"
 import { HeroCarousel } from "@/components/hero-carousel"
 import { CategoryGrid } from "@/components/category-grid"
 import { MapitaCommunity } from "@/components/mapita-community"
 import { Button } from "@/components/ui/button"
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: products, error } = await supabase.from("products").select("*");
+
+  if (error) {
+    console.error("Error fetching products:", error);
+    return <div>Error loading products.</div>;
+  }
   return (
     <main className="min-h-screen bg-slate-50 pb-20">
       <Navbar />
       <HeroCarousel />
       <CategoryGrid />
-      <MapitaCommunity />
 
       {/* Featured Products Placeholder Section */}
       <section className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between border-b bg-white p-4 shadow-sm">
-          <h2 className="text-xl font-bold text-primary uppercase tracking-wider">Flash Sale</h2>
-          <Button variant="link" className="text-primary font-bold">
-            View All
-          </Button>
+        <div className="mb-6 flex items-center justify-between border-b pb-4">
+          <h2 className="text-xl font-bold uppercase tracking-wider text-muted-foreground">Products</h2>
         </div>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {products.map((product) => (
             <div
-              key={i}
+              key={product.id}
               className="group overflow-hidden rounded-sm bg-white shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="aspect-square w-full overflow-hidden bg-gray-100">
                 <img
-                  src={`/product-.jpg?height=200&width=200&query=product-${i}`}
-                  alt="Product"
+                  src={product.image_urls?.[0] || "/placeholder.jpg"}
+                  alt={product.name || "Product"}
                   className="h-full w-full object-cover transition-transform group-hover:scale-105"
                 />
               </div>
-              <div className="p-3">
-                <h3 className="line-clamp-2 h-10 text-xs text-gray-700">Premium Mapita Heritage Product {i}</h3>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm font-bold text-primary">₱249.00</span>
-                  <span className="text-[10px] text-gray-400">12 Sold</span>
+              <div className="p-2">
+                <h3 className="line-clamp-2 text-xs text-gray-700">{product.name}</h3>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-primary">₱{product.base_price?.toFixed(2)}</span>
+                  <span className="text-[10px] text-gray-400">{product.sold_count || 0} Sold</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </section>
+      <MapitaCommunity />
     </main>
   )
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.customer_accounts ENABLE ROW LEVEL SECURITY;
