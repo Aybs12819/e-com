@@ -51,7 +51,8 @@ create table product_variations (
 );
 
 -- 5. RLS Policies
-alter table profiles enable row level security;
+-- alter table profiles enable row level security;
+alter table profiles disable row level security;
 alter table categories enable row level security;
 alter table products enable row level security;
 alter table product_variations enable row level security;

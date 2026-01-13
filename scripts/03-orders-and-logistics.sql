@@ -30,7 +30,8 @@ create table deliveries (
 -- 3. RLS Policies for Logistics
 -- alter table orders enable row level security;
 alter table orders disable row level security;
-alter table deliveries enable row level security;
+-- alter table deliveries enable row level security;
+alter table deliveries disable row level security;
 
 -- Admins and Logistics can see all orders/deliveries
 create policy "Staff can see all orders" on orders for select 

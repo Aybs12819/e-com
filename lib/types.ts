@@ -29,3 +29,16 @@ export type GroupedProductVariant = {
   price: number[];
   stock: number[];
 }
+
+export interface Order {
+  idx: number;
+  id: string;
+  customer_id: string;
+  total_amount: string;
+  status: string;
+  shipping_address: string;
+  created_at: string;
+  updated_at: string;
+  shipping_fee: string;
+  rider_id: string | null;
+}

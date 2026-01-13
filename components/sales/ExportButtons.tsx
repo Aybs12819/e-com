@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { registerRobotoFont } from "../../src/lib/fonts/Roboto-Regular-normal.js";
 
 interface ExportButtonsProps {
   orders: any[];
@@ -24,10 +25,10 @@ export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps
     try {
       const date = new Date(dateValue);
       if (isNaN(date.getTime())) return "N/A";
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: '2-digit' 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit'
       });
     } catch {
       return "N/A";
@@ -35,11 +36,12 @@ export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps
   };
 
   const formatCurrency = (value: number): string => {
-    return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `P${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const handleExportPdf = () => {
     const doc = new jsPDF();
+    registerRobotoFont(jsPDF.API);
     const pageWidth = doc.internal.pageSize.getWidth();
     const primaryColor: [number, number, number] = [41, 98, 255];
     const darkText: [number, number, number] = [33, 37, 41];
@@ -54,18 +56,18 @@ export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps
     // Title
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(28);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("Roboto-Regular", "bold");
     doc.text("Sales Report", 14, 26);
     
     // Report date
     doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+    doc.setFont("Roboto-Regular", "normal");
     doc.text(`Generated: ${formatDate(new Date())}`, pageWidth - 14, 26, { align: 'right' });
     
     // Metrics Section Title
     doc.setTextColor(...darkText);
     doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("Roboto-Regular", "bold");
     doc.text("Summary Metrics", 14, 58);
     
     // Divider line
@@ -124,13 +126,13 @@ export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps
       
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(28);
-      doc.setFont("helvetica", "bold");
+      doc.setFont("Roboto-Regular", "bold");
       doc.text("Revenue Trends", 14, 26);
       
       // Section content
       doc.setTextColor(...darkText);
       doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
+      doc.setFont("Roboto-Regular", "bold");
       doc.text("Daily Revenue Data", 14, 58);
       
       doc.setDrawColor(...primaryColor);
@@ -188,76 +190,76 @@ export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps
     }
     
     // ===== PAGE 3: ORDER DETAILS =====
-    if (orders.length > 0) {
-      doc.addPage();
+    // if (orders.length > 0) {
+    //   doc.addPage();
       
-      // Header bar
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, pageWidth, 40, 'F');
+    //   // Header bar
+    //   doc.setFillColor(...primaryColor);
+    //   doc.rect(0, 0, pageWidth, 40, 'F');
       
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.setFont("helvetica", "bold");
-      doc.text("Order Details", 14, 26);
+    //   doc.setTextColor(255, 255, 255);
+    //   doc.setFontSize(28);
+    //   doc.setFont("Roboto-Regular", "bold");
+    //   doc.text("Order Details", 14, 26);
       
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Total: ${orders.length} orders`, pageWidth - 14, 26, { align: 'right' });
+    //   doc.setFontSize(10);
+    //   doc.setFont("Roboto-Regular", "normal");
+    //   doc.text(`Total: ${orders.length} orders`, pageWidth - 14, 26, { align: 'right' });
       
-      // Section content
-      doc.setTextColor(...darkText);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("All Transactions", 14, 58);
+    //   // Section content
+    //   doc.setTextColor(...darkText);
+    //   doc.setFontSize(16);
+    //   doc.setFont("Roboto-Regular", "bold");
+    //   doc.text("All Transactions", 14, 58);
       
-      doc.setDrawColor(...primaryColor);
-      doc.setLineWidth(0.5);
-      doc.line(14, 62, pageWidth - 14, 62);
+    //   doc.setDrawColor(...primaryColor);
+    //   doc.setLineWidth(0.5);
+    //   doc.line(14, 62, pageWidth - 14, 62);
       
-      autoTable(doc, {
-        startY: 70,
-        head: [["Order ID", "Customer", "Amount", "Status", "Date"]],
-        body: orders.map((order) => [
-          order.id?.toString() || 'N/A',
-          order.customerName || order.customer_name || order.customer || 'N/A',
-          typeof order.amount === 'number' ? formatCurrency(order.amount) : (order.amount || 'N/A'),
-          order.status || 'N/A',
-          formatDate(order.createdAt || order.created_at || order.date),
-        ]),
-        theme: 'grid',
-        headStyles: {
-          fillColor: primaryColor,
-          textColor: [255, 255, 255],
-          fontSize: 10,
-          fontStyle: 'bold',
-          halign: 'center',
-          cellPadding: 6,
-        },
-        bodyStyles: {
-          fontSize: 9,
-          cellPadding: 5,
-          textColor: darkText,
-        },
-        alternateRowStyles: {
-          fillColor: [248, 249, 250],
-        },
-        columnStyles: {
-          0: { halign: 'center', cellWidth: 30 },
-          1: { halign: 'left', cellWidth: 50 },
-          2: { halign: 'right', cellWidth: 35 },
-          3: { halign: 'center', cellWidth: 30 },
-          4: { halign: 'center', cellWidth: 35 },
-        },
-        margin: { left: 14, right: 14 },
-        didDrawPage: function (data) {
-          // Footer on each page
-          doc.setFontSize(9);
-          doc.setTextColor(...grayText);
-          const pageNumber = doc.getCurrentPageInfo().pageNumber;
-          doc.text(`Page ${pageNumber}`, pageWidth / 2, footerY, { align: 'center' });
-        },
-      });
-    }
+    //   autoTable(doc, {
+    //     startY: 70,
+    //     head: [["Order ID", "Customer", "Amount", "Status", "Date"]],
+    //     body: orders.map((order) => [
+    //       order.id?.toString() || 'N/A',
+    //       order.customer_accounts?.full_name || 'N/A',
+    //       parseFloat(order.total_amount) ? formatCurrency(parseFloat(order.total_amount)) : 'N/A',
+    //       order.status || 'N/A',
+    //       formatDate(order.created_at || order.date),
+    //     ]),
+    //     theme: 'grid',
+    //     headStyles: {
+    //       fillColor: primaryColor,
+    //       textColor: [255, 255, 255],
+    //       fontSize: 10,
+    //       fontStyle: 'bold',
+    //       halign: 'center',
+    //       cellPadding: 6,
+    //     },
+    //     bodyStyles: {
+    //       fontSize: 9,
+    //       cellPadding: 5,
+    //       textColor: darkText,
+    //     },
+    //     alternateRowStyles: {
+    //       fillColor: [248, 249, 250],
+    //     },
+    //     columnStyles: {
+    //       0: { halign: 'center', cellWidth: 30 },
+    //       1: { halign: 'left', cellWidth: 50 },
+    //       2: { halign: 'right', cellWidth: 35 },
+    //       3: { halign: 'center', cellWidth: 30 },
+    //       4: { halign: 'center', cellWidth: 35 },
+    //     },
+    //     margin: { left: 14, right: 14 },
+    //     didDrawPage: function (data) {
+    //       // Footer on each page
+    //       doc.setFontSize(9);
+    //       doc.setTextColor(...grayText);
+    //       const pageNumber = doc.getCurrentPageInfo().pageNumber;
+    //       doc.text(`Page ${pageNumber}`, pageWidth / 2, footerY, { align: 'center' });
+    //     },
+    //   });
+    // }
 
     doc.save("sales_report.pdf");
   };
@@ -305,19 +307,19 @@ export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps
     }
 
     // Add Orders Sheet
-    if (orders.length > 0) {
-      const orderHeaders = ["Order ID", "Customer", "Amount", "Status", "Date"];
-      const orderRows = orders.map((order) => [
-        order.id?.toString() || 'N/A',
-        order.customerName || order.customer_name || order.customer || 'N/A',
-        typeof order.amount === 'number' ? formatCurrency(order.amount) : (order.amount || 'N/A'),
-        order.status || 'N/A',
-        formatDate(order.createdAt || order.created_at || order.date),
-      ]);
-      const orderSheet = XLSX.utils.aoa_to_sheet([["Order Details"], [""], orderHeaders, ...orderRows]);
-      orderSheet['!cols'] = [{ wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 15 }];
-      XLSX.utils.book_append_sheet(workbook, orderSheet, "Orders");
-    }
+    // if (orders.length > 0) {
+    //   const orderHeaders = ["Order ID", "Customer", "Amount", "Status", "Date"];
+    //   const orderRows = orders.map((order) => [
+    //     order.id?.toString() || 'N/A',
+    //     order.customerName || order.customer_name || order.customer || 'N/A',
+    //     typeof order.amount === 'number' ? formatCurrency(order.amount) : (order.amount || 'N/A'),
+    //     order.status || 'N/A',
+    //     formatDate(order.createdAt || order.created_at || order.date),
+    //   ]);
+    //   const orderSheet = XLSX.utils.aoa_to_sheet([["Order Details"], [""], orderHeaders, ...orderRows]);
+    //   orderSheet['!cols'] = [{ wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 15 }];
+    //   XLSX.utils.book_append_sheet(workbook, orderSheet, "Orders");
+    // }
 
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const data = new Blob([excelBuffer], {

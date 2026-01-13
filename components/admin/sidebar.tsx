@@ -8,7 +8,8 @@ import {
   Package,
   Users,
   Truck,
-  Settings,
+  BarChart3,
+  PackageOpen,
   LogOut,
   ShoppingBag,
 } from "lucide-react";
@@ -20,7 +21,8 @@ const menuItems = [
   { icon: ShoppingBag, label: "Orders", href: "/admin/orders" },
   { icon: Users, label: "User Management", href: "/admin/users" },
   { icon: Truck, label: "Logistics", href: "/admin/logistics" },
-  { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: BarChart3, label: "Sales Report", href: "/admin/sales-report" },
+  { icon: PackageOpen, label: "Custom Products", href: "/admin/custom-products" },
 ];
 
 export function AdminSidebar() {
