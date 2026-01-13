@@ -28,6 +28,7 @@ interface AssignRiderDialogProps {
   riders: Rider[];
   isOpen: boolean;
   onClose: () => void;
+  isCustomProduct?: boolean;
 }
 
 export function AssignRiderDialog({
@@ -35,6 +36,7 @@ export function AssignRiderDialog({
   riders,
   isOpen,
   onClose,
+  isCustomProduct = false,
 }: AssignRiderDialogProps) {
   const [selectedRider, setSelectedRider] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -54,56 +56,93 @@ export function AssignRiderDialog({
 
     setIsAssigning(true);
 
-    const { error } = await supabase
-      .from("orders")
-      .update({ rider_id: selectedRider, status: "delivery rider assigned" })
-      .eq("id", orderId);
+    try {
+      if (isCustomProduct) {
+        // Update custom product status via API
+        const response = await fetch("/api/admin/custom-products", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customProductId: orderId,
+            customProductData: { status: "Delivery Rider Assigned" },
+          }),
+        });
 
-    if (error) {
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(
+            result.error || "Failed to update custom product status"
+          );
+        }
+      } else {
+        // Update order status and rider_id directly
+        const { error } = await supabase
+          .from("orders")
+          .update({
+            rider_id: selectedRider,
+            status: "delivery rider assigned",
+          })
+          .eq("id", orderId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+
+      // Insert into deliveries table
+      const deliveryData = isCustomProduct
+        ? {
+            custom_product_id: orderId,
+            rider_id: selectedRider,
+            status: "assigned",
+          }
+        : {
+            order_id: orderId,
+            rider_id: selectedRider,
+            status: "assigned",
+          };
+
+      const { error: deliveryError } = await supabase
+        .from("deliveries")
+        .insert([deliveryData]);
+
+      if (deliveryError) {
+        throw new Error(
+          `Failed to create delivery record: ${deliveryError.message}`
+        );
+      }
+
+      toast({
+        title: "Rider Assigned",
+        description: `${
+          isCustomProduct ? "Custom Product" : "Order"
+        } ${orderId.slice(0, 8)} assigned successfully!`,
+      });
+      router.refresh(); // Refresh the page to update the list of unassigned orders
+      onClose();
+    } catch (error: any) {
       console.error("Error assigning rider:", error.message);
       toast({
         title: "Assignment Failed",
         description: `Failed to assign rider: ${error.message}`,
         variant: "destructive",
       });
-    } else {
-      // Insert into deliveries table
-      const { error: deliveryError } = await supabase
-        .from("deliveries")
-        .insert([
-          {
-            order_id: orderId,
-            rider_id: selectedRider,
-            status: "assigned",
-          },
-        ]);
-
-      if (deliveryError) {
-        console.error("Error creating delivery record:", deliveryError);
-        toast({
-          title: "Delivery Creation Failed",
-          description: `Failed to create delivery record: ${deliveryError.message}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Rider Assigned",
-          description: `Order ${orderId.slice(0, 8)} assigned successfully!`,
-        });
-        router.refresh(); // Refresh the page to update the list of unassigned orders
-        onClose();
-      }
+    } finally {
+      setIsAssigning(false);
     }
-    setIsAssigning(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Assign Rider to Order {orderId.slice(0, 8)}</DialogTitle>
+          <DialogTitle>
+            Assign Rider to {isCustomProduct ? "Custom Product" : "Order"}{" "}
+            {orderId.slice(0, 8)}
+          </DialogTitle>
           <DialogDescription>
-            Select a rider from the list below to assign to this order.
+            Select a rider from the list below to assign to this{" "}
+            {isCustomProduct ? "custom product" : "order"}.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

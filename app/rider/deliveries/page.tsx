@@ -29,7 +29,7 @@ export default async function RiderDashboard() {
   const { data: activeDeliveries } = await supabase
     .from("deliveries")
     .select(
-      "*, orders(id, total_amount, shipping_address, customer_accounts(first_name, middle_name, last_name, phone))"
+      `*, orders(id, total_amount, shipping_address, customer_accounts(first_name, middle_name, last_name, phone)), custom_products(id, name, base_price, description, images, customer_accounts(first_name, middle_name, last_name, phone, address))`
     )
     .eq("rider_id", user.id)
     .eq("status", "assigned");
@@ -37,7 +37,7 @@ export default async function RiderDashboard() {
   const { data: completedDeliveries } = await supabase
     .from("deliveries")
     .select(
-      "*, orders(id, total_amount, shipping_address, customer_accounts(first_name, middle_name, last_name, phone))"
+      `*, orders(id, total_amount, shipping_address, customer_accounts(first_name, middle_name, last_name, phone)), custom_products(id, name, base_price, description, images, customer_accounts(first_name, middle_name, last_name, phone, address))`
     )
     .eq("rider_id", user.id)
     .eq("status", "completed")
@@ -95,58 +95,86 @@ export default async function RiderDashboard() {
 
         <TabsContent value="completed" className="mt-6">
           <div className="space-y-4">
-            {completedDeliveries?.map((delivery) => (
-              <Card
-                key={delivery.id}
-                className="overflow-hidden border-l-4 border-l-green-500"
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-bold">
-                    Order #{delivery.orders?.id?.slice(0, 8) || "N/A"}
-                  </CardTitle>
-                  <Badge
-                    variant="outline"
-                    className="bg-green-50 text-green-700"
-                  >
-                    Completed
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium">Customer:</span>
-                      <span>
-                        {delivery.orders?.customer_accounts
-                          ? `${delivery.orders.customer_accounts.first_name} ${
-                              delivery.orders.customer_accounts.middle_name ||
-                              ""
-                            } ${
-                              delivery.orders.customer_accounts.last_name
-                            }`.trim()
-                          : "N/A"}
-                      </span>
+            {completedDeliveries?.map((delivery) => {
+              const isCustomProduct = !!delivery.custom_product_id;
+              const referenceData = isCustomProduct
+                ? delivery.custom_products
+                : delivery.orders;
+              const customerData = referenceData?.customer_accounts;
+
+              return (
+                <Card
+                  key={delivery.id}
+                  className="overflow-hidden border-l-4 border-l-green-500"
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-bold">
+                      {isCustomProduct
+                        ? `Custom Product: ${
+                            (referenceData as any)?.name || "N/A"
+                          }`
+                        : `Order #${referenceData?.id?.slice(0, 8) || "N/A"}`}
+                    </CardTitle>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700"
+                    >
+                      Completed
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">Customer:</span>
+                        <span>
+                          {customerData
+                            ? `${customerData.first_name} ${
+                                customerData.middle_name || ""
+                              } ${customerData.last_name}`.trim()
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {customerData?.phone || "Phone number not available"}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {isCustomProduct
+                            ? customerData?.address || "Address not available"
+                            : (referenceData as any)?.shipping_address || "N/A"}
+                        </span>
+                      </div>
+                      {isCustomProduct &&
+                        (referenceData as any)?.description && (
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="font-medium">Description:</span>
+                            <span className="text-xs text-muted-foreground">
+                              {(referenceData as any).description}
+                            </span>
+                          </div>
+                        )}
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">
+                          {isCustomProduct ? "Product Price:" : "Total Amount:"}
+                        </span>
+                        <span>
+                          ₱
+                          {isCustomProduct
+                            ? (referenceData as any)?.base_price?.toFixed(2)
+                            : (referenceData as any)?.total_amount?.toFixed(
+                                2
+                              ) || "N/A"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {delivery.orders?.customer_accounts?.phone ||
-                          "Phone number not available"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                      <span>{delivery.orders?.shipping_address || "N/A"}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium">Total Amount:</span>
-                      <span>
-                        ₱{delivery.orders?.total_amount?.toFixed(2) || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
             {!completedDeliveries?.length && (
               <div className="flex h-64 flex-col items-center justify-center text-muted-foreground">
                 <PackageCheck className="mb-2 h-12 w-12 opacity-20" />

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,14 @@ import { Rider } from "@/lib/types"; // Import the shared Rider interface
 interface AssignRiderButtonProps {
   orderId: string;
   riders: Rider[];
+  isCustomProduct?: boolean;
 }
 
-export function AssignRiderButton({ orderId, riders }: AssignRiderButtonProps) {
+export function AssignRiderButton({
+  orderId,
+  riders,
+  isCustomProduct = false,
+}: AssignRiderButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleAssignRider = () => {
@@ -29,6 +34,7 @@ export function AssignRiderButton({ orderId, riders }: AssignRiderButtonProps) {
         riders={riders}
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        isCustomProduct={isCustomProduct}
       />
     </>
   );
