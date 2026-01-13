@@ -31,6 +31,7 @@ interface OrderItem {
   variation_id: string | null;
   products: Product | null;
   product_variations: ProductVariation | null;
+  custom_products: any | null; // Add custom products support
 }
 
 interface Order {
@@ -49,8 +50,23 @@ interface Order {
   shipping_fee: number; // Add shipping_fee to the Order interface
 }
 
+interface CustomProduct {
+  id: string;
+  category_id: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  base_price: number;
+  images: string[];
+  status: string;
+  created_at: string;
+  updated_at: string;
+  customer_id: string | null;
+}
+
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customProducts, setCustomProducts] = useState<CustomProduct[]>([]);
   const [session, setSession] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("all");
   const supabaseClient = createBrowserClient(
@@ -104,7 +120,7 @@ export default function MyOrdersPage() {
             await supabaseClient
               .from("order_items")
               .select(
-                "id, quantity, price, product_id, variation_id, products:products(*)"
+                "id, quantity, price, product_id, variation_id, products:products(*), custom_products:custom_products(*)"
               )
               .eq("order_id", order.id);
 
@@ -113,22 +129,14 @@ export default function MyOrdersPage() {
             return { ...order, order_items: [] };
           }
 
-          const orderItemsWithDetails = await Promise.all(
-            (orderItemsData || []).map(async (item: any) => {
-              let productData = null;
-              if (item.product_id) {
-                const { data: product, error: productError } =
-                  await supabaseClient
-                    .from("products")
-                    .select("*")
-                    .eq("id", item.product_id)
-                    .single();
-                if (productError) {
-                  console.error("Error fetching product:", productError);
-                } else {
-                  productData = product;
-                }
-              }
+          const orderItemsWithDetails = (orderItemsData || []).map(
+            (item: any) => {
+              // Check if this is a custom product
+              const isCustomProduct =
+                item.custom_products && item.custom_products.id;
+              const productData = isCustomProduct
+                ? item.custom_products
+                : item.products;
 
               return {
                 ...item,
@@ -136,12 +144,13 @@ export default function MyOrdersPage() {
                   name: "Unknown Product",
                   image_urls: [],
                 },
+                custom_products: item.custom_products || null,
                 product_variations: item.product_variations || {
                   variation_name: "Unknown",
                   variation_value: "Unknown",
                 },
               };
-            })
+            }
           );
 
           const orderSubtotal = orderItemsWithDetails.reduce(
@@ -160,6 +169,21 @@ export default function MyOrdersPage() {
         })
       );
       setOrders(ordersWithItems);
+
+      // Fetch custom products for this customer
+      const { data: customProductsData, error: customProductsError } =
+        await supabaseClient
+          .from("custom_products")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false });
+
+      if (customProductsError) {
+        console.error("Error fetching custom products:", customProductsError);
+        setCustomProducts([]);
+      } else {
+        setCustomProducts(customProductsData || []);
+      }
     };
 
     fetchOrders();
@@ -168,6 +192,21 @@ export default function MyOrdersPage() {
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "all") return true;
     return order.status === activeTab;
+  });
+
+  const filteredCustomProducts = customProducts.filter((product) => {
+    if (activeTab === "all") return true;
+    // Map order statuses to custom product statuses
+    const statusMapping: { [key: string]: string } = {
+      pending: "Pending",
+      "confirmed order": "Confirmed Order",
+      "delivery rider assigned": "Delivery Rider Assigned",
+      completed: "Completed",
+    };
+    return (
+      product.status?.toLowerCase() ===
+      (statusMapping[activeTab] || activeTab).toLowerCase()
+    );
   });
 
   return (
@@ -218,47 +257,59 @@ export default function MyOrdersPage() {
         </Tabs>
 
         <div className="space-y-4">
-          {filteredOrders.length === 0 ? (
+          {filteredOrders.length === 0 &&
+          filteredCustomProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded shadow-sm text-gray-300">
               <ShieldAlert className="h-16 w-16 mb-4 opacity-10" />
               <p className="text-sm">No orders yet</p>
             </div>
           ) : (
-            filteredOrders.map((order) => (
-              <div
-                key={order.id}
-                className="bg-white rounded shadow-sm overflow-hidden"
-              >
-                <div className="flex items-center justify-between p-4 border-b">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">
-                      Order ID: {order.id}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-emerald-600" />
-                    <span className="text-xs text-emerald-600 font-medium">
-                      {order.status}
-                    </span>
-                    {order.status === "delivery rider assigned" && (
-                      <span className="text-xs text-gray-500">
-                        {(() => {
-                          try {
-                            let municipality = "";
-                            let region = "";
+            <>
+              {/* Render Orders */}
+              {filteredOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="bg-white rounded shadow-sm overflow-hidden"
+                >
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm">
+                        Order ID: {order.id}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs text-emerald-600 font-medium">
+                        {order.status}
+                      </span>
+                      {order.status === "delivery rider assigned" && (
+                        <span className="text-xs text-gray-500">
+                          {(() => {
+                            try {
+                              let municipality = "";
+                              let region = "";
 
-                            // Handle different shipping_address formats
-                            if (typeof order.shipping_address === "string") {
-                              try {
-                                // Try to parse as JSON first
-                                const parsed = JSON.parse(
-                                  order.shipping_address
-                                );
-                                if (parsed.municipality && parsed.region) {
-                                  municipality = parsed.municipality;
-                                  region = parsed.region;
-                                } else {
-                                  // Fall back to string splitting
+                              // Handle different shipping_address formats
+                              if (typeof order.shipping_address === "string") {
+                                try {
+                                  // Try to parse as JSON first
+                                  const parsed = JSON.parse(
+                                    order.shipping_address
+                                  );
+                                  if (parsed.municipality && parsed.region) {
+                                    municipality = parsed.municipality;
+                                    region = parsed.region;
+                                  } else {
+                                    // Fall back to string splitting
+                                    const parts =
+                                      order.shipping_address.split(", ");
+                                    if (parts.length >= 2) {
+                                      municipality = parts[0].trim();
+                                      region = parts[1].trim();
+                                    }
+                                  }
+                                } catch (jsonError) {
+                                  // If JSON parsing fails, try string splitting
                                   const parts =
                                     order.shipping_address.split(", ");
                                   if (parts.length >= 2) {
@@ -266,110 +317,177 @@ export default function MyOrdersPage() {
                                     region = parts[1].trim();
                                   }
                                 }
-                              } catch (jsonError) {
-                                // If JSON parsing fails, try string splitting
-                                const parts =
-                                  order.shipping_address.split(", ");
-                                if (parts.length >= 2) {
-                                  municipality = parts[0].trim();
-                                  region = parts[1].trim();
-                                }
+                              } else if (
+                                typeof order.shipping_address === "object" &&
+                                order.shipping_address !== null
+                              ) {
+                                municipality =
+                                  order.shipping_address.municipality || "";
+                                region = order.shipping_address.region || "";
                               }
-                            } else if (
-                              typeof order.shipping_address === "object" &&
-                              order.shipping_address !== null
-                            ) {
-                              municipality =
-                                order.shipping_address.municipality || "";
-                              region = order.shipping_address.region || "";
-                            }
 
-                            const days = getEstimatedDays(region, municipality);
+                              const days = getEstimatedDays(
+                                region,
+                                municipality
+                              );
 
-                            if (days) {
-                              return `Estimated arrival: ${days}-${
-                                days + 1
-                              } days`;
+                              if (days) {
+                                return `Estimated arrival: ${days}-${
+                                  days + 1
+                                } days`;
+                              }
+                            } catch (e) {
+                              console.error(
+                                "Error parsing shipping address:",
+                                e
+                              );
                             }
-                          } catch (e) {
-                            console.error("Error parsing shipping address:", e);
-                          }
-                          return "";
-                        })()}
-                      </span>
-                    )}
-                    {order.status === "completed" && order.customer_id && (
-                      <ReviewModal
-                        orderId={order.id}
-                        customerId={order.customer_id}
-                      />
-                    )}
+                            return "";
+                          })()}
+                        </span>
+                      )}
+                      {order.status === "completed" && order.customer_id && (
+                        <ReviewModal
+                          orderId={order.id}
+                          customerId={order.customer_id}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {order.order_items.map((item) => (
+                    <div key={item.id} className="p-4 border-b">
+                      <div className="flex gap-4">
+                        {item.products && item.products.image_urls && (
+                          <img
+                            alt={item.products.name}
+                            className="aspect-square rounded border-2 border-gray900 object-cover h-20 w-20"
+                            src={
+                              item.products.image_urls?.[0] ||
+                              "/placeholder.jpg"
+                            }
+                          />
+                        )}
+                        <div className="flex-1">
+                          {item.products ? (
+                            <h3 className="text-sm font-medium">
+                              {item.products.name}
+                            </h3>
+                          ) : null}
+
+                          <p className="text-xs text-gray-500 mt-1">
+                            x{item.quantity}
+                          </p>
+                        </div>
+                        <div className="text-sm font-bold text-primary">
+                          ₱{(item.price * item.quantity).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="p-4 bg-slate-50/50">
+                    {/* Calculate subtotal for the current order */}
+                    {(() => {
+                      const orderSubtotal = order.order_items.reduce(
+                        (sum, item) => sum + item.price * item.quantity,
+                        0
+                      );
+                      const shippingFee = order.shipping_fee;
+
+                      return (
+                        <>
+                          <div className="flex justify-end items-center gap-4 mb-2">
+                            <span className="text-xs text-gray-500">
+                              Shipping Fee:
+                            </span>
+                            <span className="text-sm font-medium text-gray-700">
+                              ₱{shippingFee.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-end items-center gap-4">
+                            <span className="text-xs text-gray-500">
+                              Order Total:
+                            </span>
+                            <span className="text-xl font-bold text-primary">
+                              ₱{order.total_amount.toFixed(2)}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
+              ))}
 
-                {order.order_items.map((item) => (
-                  <div key={item.id} className="p-4 border-b">
+              {/* Render Custom Products */}
+              {filteredCustomProducts.map((product) => (
+                <div
+                  key={`custom-${product.id}`}
+                  className="bg-white rounded shadow-sm overflow-hidden"
+                >
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm">
+                        Custom Product: {product.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs text-emerald-600 font-medium">
+                        {product.status}
+                      </span>
+                      {product.status === "Delivery Rider Assigned" && (
+                        <span className="text-xs text-gray-500">
+                          Estimated delivery: 3-5 days
+                        </span>
+                      )}
+                      {product.status === "Completed" &&
+                        product.customer_id && (
+                          <ReviewModal
+                            orderId={product.id}
+                            customerId={product.customer_id}
+                          />
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 border-b">
                     <div className="flex gap-4">
-                      {item.products && item.products.image_urls && (
+                      {product.images && product.images.length > 0 && (
                         <img
-                          alt={item.products.name}
+                          alt={product.name}
                           className="aspect-square rounded border-2 border-gray900 object-cover h-20 w-20"
-                          src={
-                            item.products.image_urls?.[0] || "/placeholder.jpg"
-                          }
+                          src={product.images[0] || "/placeholder.jpg"}
                         />
                       )}
                       <div className="flex-1">
-                        {item.products ? (
-                          <h3 className="text-sm font-medium">
-                            {item.products.name}
-                          </h3>
-                        ) : null}
-
-                        <p className="text-xs text-gray-500 mt-1">
-                          x{item.quantity}
-                        </p>
+                        <h3 className="text-sm font-medium">{product.name}</h3>
+                        {product.description && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {product.description}
+                          </p>
+                        )}
                       </div>
                       <div className="text-sm font-bold text-primary">
-                        ₱{(item.price * item.quantity).toFixed(2)}
+                        ₱{product.base_price.toFixed(2)}
                       </div>
                     </div>
                   </div>
-                ))}
 
-                <div className="p-4 bg-slate-50/50">
-                  {/* Calculate subtotal for the current order */}
-                  {(() => {
-                    const orderSubtotal = order.order_items.reduce(
-                      (sum, item) => sum + item.price * item.quantity,
-                      0
-                    );
-                    const shippingFee = order.shipping_fee;
-
-                    return (
-                      <>
-                        <div className="flex justify-end items-center gap-4 mb-2">
-                          <span className="text-xs text-gray-500">
-                            Shipping Fee:
-                          </span>
-                          <span className="text-sm font-medium text-gray-700">
-                            ₱{shippingFee.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-end items-center gap-4">
-                          <span className="text-xs text-gray-500">
-                            Order Total:
-                          </span>
-                          <span className="text-xl font-bold text-primary">
-                            ₱{order.total_amount.toFixed(2)}
-                          </span>
-                        </div>
-                      </>
-                    );
-                  })()}
+                  <div className="p-4 bg-slate-50/50">
+                    <div className="flex justify-end items-center gap-4">
+                      <span className="text-xs text-gray-500">
+                        Custom Product Total:
+                      </span>
+                      <span className="text-xl font-bold text-primary">
+                        ₱{product.base_price.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
         </div>
       </main>

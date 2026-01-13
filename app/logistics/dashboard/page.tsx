@@ -20,8 +20,14 @@ export default async function LogisticsDashboard() {
   // Fetch confirmed orders that need delivery assignment
   const { data: pendingOrders } = await supabase
     .from("orders")
-    .select("*, customer_accounts(first_name, middle_name, last_name)")
+    .select("*, customer_accounts(first_name, middle_name, last_name, address)")
     .eq("status", "confirmed order");
+
+  // Fetch custom products that need delivery assignment
+  const { data: pendingCustomProducts } = await supabase
+    .from("custom_products")
+    .select("*, customer_accounts(first_name, middle_name, last_name, address)")
+    .eq("status", "Confirmed Order");
 
   // Fetch active riders
   const { data: ridersData, error: ridersError } = await supabase
@@ -70,7 +76,8 @@ export default async function LogisticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {pendingOrders?.length || 0}
+                {(pendingOrders?.length || 0) +
+                  (pendingCustomProducts?.length || 0)}
               </div>
             </CardContent>
           </Card>
@@ -100,13 +107,14 @@ export default async function LogisticsDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Unassigned Orders</CardTitle>
+            <CardTitle>Unassigned Orders & Custom Products</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order ID</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Address</TableHead>
@@ -114,10 +122,14 @@ export default async function LogisticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {/* Render Orders */}
                 {pendingOrders?.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono text-xs">
                       {order.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium text-blue-600">
+                      Order
                     </TableCell>
                     <TableCell>
                       {`${order.customer_accounts?.first_name} ${
@@ -128,20 +140,57 @@ export default async function LogisticsDashboard() {
                     </TableCell>
                     <TableCell>{order.status}</TableCell>
                     <TableCell className="max-w-[200px] truncate text-xs">
-                      {JSON.stringify(order.shipping_address)}
+                      {typeof order.shipping_address === "string"
+                        ? order.shipping_address
+                        : JSON.stringify(order.shipping_address).replace(
+                            /^"|"$/g,
+                            ""
+                          )}
                     </TableCell>
                     <TableCell>
                       <AssignRiderButton orderId={order.id} riders={riders} />
                     </TableCell>
                   </TableRow>
                 ))}
-                {!pendingOrders?.length && (
+
+                {/* Render Custom Products */}
+                {pendingCustomProducts?.map((product) => (
+                  <TableRow key={`custom-${product.id}`}>
+                    <TableCell className="font-mono text-xs">
+                      {product.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium text-green-600">
+                      Custom Product
+                    </TableCell>
+                    <TableCell>
+                      {`${product.customer_accounts?.first_name} ${
+                        product.customer_accounts?.middle_name
+                          ? product.customer_accounts.middle_name + " "
+                          : ""
+                      }${product.customer_accounts?.last_name}`}
+                    </TableCell>
+                    <TableCell>{product.status.toLowerCase()}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs">
+                      {product.customer_accounts?.address ||
+                        "No address available"}
+                    </TableCell>
+                    <TableCell>
+                      <AssignRiderButton
+                        orderId={product.id}
+                        riders={riders}
+                        isCustomProduct={true}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                {!pendingOrders?.length && !pendingCustomProducts?.length && (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="h-24 text-center text-muted-foreground"
                     >
-                      No orders pending assignment.
+                      No orders or custom products pending assignment.
                     </TableCell>
                   </TableRow>
                 )}

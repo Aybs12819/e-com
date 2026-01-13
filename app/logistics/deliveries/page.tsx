@@ -10,29 +10,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-
-
 interface DeliveryData {
   id: string;
-  order_id: string;
+  order_id: string | null;
+  custom_product_id: string | null;
   rider_id: string;
   rider_full_name: string;
   status: string;
+  type: "order" | "custom_product";
+  reference_id: string;
 }
 
 const DeliveriesPage = async () => {
   const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("deliveries")
-    .select(
-      `
-      id,
-      order_id,
-      status,
-      rider_id
-    `
-    );
 
   const { data: deliveriesData, error: deliveriesError } = await supabase
     .from("deliveries")
@@ -40,6 +30,7 @@ const DeliveriesPage = async () => {
       `
       id,
       order_id,
+      custom_product_id,
       status,
       rider_id
     `
@@ -67,14 +58,19 @@ const DeliveriesPage = async () => {
   console.log("Raw Supabase deliveries data:", deliveriesData);
   console.log("Raw Supabase profiles data:", profilesData);
 
-  const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile.full_name]));
+  const profilesMap = new Map(
+    profilesData?.map((profile) => [profile.id, profile.full_name])
+  );
 
   const deliveries: DeliveryData[] = deliveriesData.map((delivery: any) => ({
     id: delivery.id,
     order_id: delivery.order_id,
+    custom_product_id: delivery.custom_product_id,
     status: delivery.status,
     rider_id: delivery.rider_id,
     rider_full_name: profilesMap.get(delivery.rider_id) || "N/A",
+    type: delivery.order_id ? "order" : "custom_product",
+    reference_id: delivery.order_id || delivery.custom_product_id,
   }));
 
   console.log("Processed deliveries data (manual join):", deliveries);
@@ -94,7 +90,8 @@ const DeliveriesPage = async () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Delivery ID</TableHead>
-                <TableHead>Order ID</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Reference ID</TableHead>
                 <TableHead>Rider Name</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -102,11 +99,16 @@ const DeliveriesPage = async () => {
             <TableBody>
               {deliveries.map((delivery) => (
                 <TableRow key={delivery.id}>
-                  <TableCell className="font-medium">{delivery.id}</TableCell>
-                  <TableCell>{delivery.order_id}</TableCell>
-                  <TableCell>
-                    {delivery.rider_full_name}
+                  <TableCell className="font-medium">
+                    {delivery.id.slice(0, 8)}
                   </TableCell>
+                  <TableCell className="capitalize">
+                    {delivery.type.replace("_", " ")}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {delivery.reference_id.slice(0, 8)}
+                  </TableCell>
+                  <TableCell>{delivery.rider_full_name}</TableCell>
                   <TableCell>{delivery.status}</TableCell>
                 </TableRow>
               ))}
