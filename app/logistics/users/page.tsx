@@ -1,12 +1,28 @@
-"use client"
+"use client";
 import { LogisticsSidebar } from "@/components/logistics/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase/client";
+import { uploadProfileImage } from "@/utils/supabase/storage";
 import { PlusCircledIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
@@ -21,6 +37,7 @@ interface User {
   role: string;
   created_at: string;
   full_name: string;
+  address: string;
 }
 
 export default function LogisticsUsersPage() {
@@ -28,6 +45,9 @@ export default function LogisticsUsersPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabaseClient = supabase;
@@ -36,49 +56,92 @@ export default function LogisticsUsersPage() {
     e.preventDefault();
     setLoading(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
-      toast({ title: "Error", description: "User not authenticated.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "User not authenticated.",
+        variant: "destructive",
+      });
       setLoading(false);
       return;
+    }
+
+    let idImageUrl = null;
+    if (selectedFile) {
+      const { publicUrl, error } = await uploadProfileImage(selectedFile);
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to upload image.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      idImageUrl = publicUrl;
     }
 
     const res = await fetch("/api/admin/rider", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ full_name: fullName, email, password }),
+      body: JSON.stringify({
+        full_name: fullName,
+        email,
+        password,
+        phone_number: phoneNumber,
+        address,
+        id_image_url: idImageUrl,
+      }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
       console.error("Server Error:", data.error);
-      toast({ title: "Error", description: data.error, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: data.error,
+        variant: "destructive",
+      });
     } else {
-      toast({ title: "Success", description: "Rider user created successfully!" });
+      toast({
+        title: "Success",
+        description: "Rider user created successfully!",
+      });
       setIsModalOpen(false);
       setFullName("");
       setEmail("");
+      setPhoneNumber("");
       setPassword("");
-      setUsers((prevUsers) => [data.user, ...prevUsers]);
+      setAddress("");
+      setSelectedFile(null);
+      fetchUsers();
     }
     setLoading(false);
   };
 
   const [users, setUsers] = useState<User[]>([]);
 
+  const fetchUsers = async () => {
+    const supabaseClient = supabase;
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("role", "rider")
+      .order("created_at", { ascending: false });
+    if (data) {
+      setUsers(data);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      const supabaseClient = supabase;
-      const { data } = await supabase.from("profiles").select("*").eq("role", "rider").order("created_at", { ascending: false });
-      if (data) {
-        setUsers(data);
-      }
-    };
     fetchUsers();
   }, []);
 
@@ -88,13 +151,19 @@ export default function LogisticsUsersPage() {
       <main className="ml-64 flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold">User Management</h1>
-          <p className="text-sm text-muted-foreground">Manage and view all registered riders and their roles.</p>
+          <p className="text-sm text-muted-foreground">
+            Manage and view all registered riders and their roles.
+          </p>
         </div>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>All Riders</CardTitle>
-            <Button size="sm" className="h-8" onClick={() => setIsModalOpen(true)}>
+            <Button
+              size="sm"
+              className="h-8"
+              onClick={() => setIsModalOpen(true)}
+            >
               <PlusCircledIcon className="mr-2 h-4 w-4" /> Add Rider
             </Button>
           </CardHeader>
@@ -105,23 +174,38 @@ export default function LogisticsUsersPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Address</TableHead>
                   <TableHead>Joined</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users?.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.full_name || "N/A"}</TableCell>
+                    <TableCell className="font-medium">
+                      {user.full_name || "N/A"}
+                    </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>{user.role}</Badge>
+                      <Badge
+                        variant={
+                          user.role === "admin" ? "default" : "secondary"
+                        }
+                      >
+                        {user.role}
+                      </Badge>
                     </TableCell>
-                    <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{user.address || "N/A"}</TableCell>
+                    <TableCell>
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {!users?.length && (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center text-muted-foreground"
+                    >
                       No riders found.
                     </TableCell>
                   </TableRow>
@@ -167,6 +251,19 @@ export default function LogisticsUsersPage() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone-number" className="text-right">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phone-number"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="password" className="text-right">
                     Password
                   </Label>
@@ -177,6 +274,32 @@ export default function LogisticsUsersPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="col-span-3"
                     required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="address" className="text-right">
+                    Address
+                  </Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="id-image" className="text-right">
+                    ID Image
+                  </Label>
+                  <Input
+                    id="id-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setSelectedFile(e.target.files?.[0] || null)
+                    }
+                    className="col-span-3"
                   />
                 </div>
               </div>
