@@ -12,7 +12,7 @@ export interface Product {
   variants: GroupedProductVariant[];
   image_urls: string[];
   created_at: string;
-  is_active: boolean;
+  is_active: string;
   categories: { name: string } | null;
   variantCombinations: VariantCombination[];
 }
@@ -28,7 +28,7 @@ export type GroupedProductVariant = {
   value: string[];
   price: number[];
   stock: number[];
-}
+};
 
 export interface Order {
   idx: number;
