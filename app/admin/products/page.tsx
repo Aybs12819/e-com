@@ -1,25 +1,51 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback } from "react"
-import { supabase } from "@/lib/supabase/client"
-import { AdminSidebar } from "@/components/admin/sidebar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, MinusCircle, XIcon } from "lucide-react"
-import Image from "next/image"
-import { uploadProductImage } from "@/utils/supabase/storage"
-import { Badge } from "@/components/ui/badge"
-import { Product, GroupedProductVariant } from "@/lib/types"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
-import { useToast } from "@/hooks/use-toast"
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { AdminSidebar } from "@/components/admin/sidebar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Plus, Edit, Trash2, MinusCircle, XIcon } from "lucide-react";
+import Image from "next/image";
+import { uploadProductImage } from "@/utils/supabase/storage";
+import { Badge } from "@/components/ui/badge";
+import { Product, GroupedProductVariant } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { useToast } from "@/hooks/use-toast";
 import { ChevronRight } from "lucide-react";
-import { VariantPriceStockModal, VariantCombination } from "@/components/admin/VariantPriceStockModal";
+import {
+  VariantPriceStockModal,
+  VariantCombination,
+} from "@/components/admin/VariantPriceStockModal";
 
 export interface NewProductState {
   name: string;
@@ -29,7 +55,7 @@ export interface NewProductState {
   category_id: string;
   image_urls: string[];
   variantCombinations: VariantCombination[];
-  is_active: boolean;
+  is_active: string;
   slug: string;
 }
 
@@ -49,9 +75,11 @@ export default function AdminProductsPage() {
   const [showEditProductForm, setShowEditProductForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
-  const [currentProductToEdit, setCurrentProductToEdit] = useState<Product | null>(null);
-  const [showVariantPriceStockModal, setShowVariantPriceStockModal] = useState(false);
-  const [modalFor, setModalFor] = useState<'add' | 'edit' | null>(null);
+  const [currentProductToEdit, setCurrentProductToEdit] =
+    useState<Product | null>(null);
+  const [showVariantPriceStockModal, setShowVariantPriceStockModal] =
+    useState(false);
+  const [modalFor, setModalFor] = useState<"add" | "edit" | null>(null);
   const [newProduct, setNewProduct] = useState<NewProductState>({
     name: "",
     description: "",
@@ -59,7 +87,7 @@ export default function AdminProductsPage() {
     stock: 0,
     category_id: "",
     image_urls: [],
-    is_active: true,
+    is_active: "active",
     slug: "",
     variantCombinations: [],
   });
@@ -70,77 +98,111 @@ export default function AdminProductsPage() {
     stock: 0,
     category_id: "",
     image_urls: [],
-    is_active: true,
+    is_active: "active",
     slug: "",
     variantCombinations: [],
   });
-  const [variants, setVariants] = useState<GroupedProductVariant[]>([{ type: "", value: [""], price: [], stock: [] }]);
-  const [editVariants, setEditVariants] = useState<GroupedProductVariant[]>([{ type: "", value: [""], price: [], stock: [] }]);
+  const [variants, setVariants] = useState<GroupedProductVariant[]>([
+    { type: "", value: [""], price: [], stock: [] },
+  ]);
+  const [editVariants, setEditVariants] = useState<GroupedProductVariant[]>([
+    { type: "", value: [""], price: [], stock: [] },
+  ]);
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "active" | "pre-order"
+  >("all");
 
-interface RawProductData extends Omit<Product, 'variantCombinations'> {
-  variant_combinations: VariantCombination[] | null;
-}
+  interface RawProductData extends Omit<Product, "variantCombinations"> {
+    variant_combinations: VariantCombination[] | null;
+  }
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      const { data: productsData, error: productsError } = await supabase
-        .from("products")
-        .select("*, categories(id, name), variant_combinations")
-        .order("created_at", { ascending: false }) as { data: RawProductData[] | null, error: any };
+  const fetchProducts = useCallback(
+    async (filter: string = "all") => {
+      try {
+        console.log("Fetching products with filter:", filter);
+        let query = supabase
+          .from("products")
+          .select("*, categories(id, name), variant_combinations")
+          .order("created_at", { ascending: false });
 
-      if (productsError) throw productsError;
+        if (filter !== "all") {
+          query = query.eq("is_active", filter);
+        }
 
-      if (productsData && productsData.length > 0) {
-        const productsWithMappedVariants = productsData.map(product => {
-          return {
-            ...product,
-            variantCombinations: product.variant_combinations || [],
-          };
+        const { data: productsData, error: productsError } = (await query) as {
+          data: RawProductData[] | null;
+          error: any;
+        };
+
+        console.log(
+          "Fetched products data:",
+          productsData?.length || 0,
+          "items"
+        );
+
+        if (productsError) throw productsError;
+
+        if (productsData && productsData.length > 0) {
+          const productsWithMappedVariants = productsData.map((product) => {
+            return {
+              ...product,
+              variantCombinations: product.variant_combinations || [],
+            };
+          });
+
+          const productIds = productsWithMappedVariants.map((p) => p.id);
+          const { data: variationsData, error: variationsError } =
+            (await supabase
+              .from("product_variations")
+              .select("*")
+              .in("product_id", productIds)) as {
+              data: any[] | null;
+              error: any;
+            };
+
+          if (variationsError) throw variationsError;
+
+          const groupedVariations = variationsData?.reduce((acc, variation) => {
+            if (!acc[variation.product_id]) {
+              acc[variation.product_id] = [];
+            }
+            const existingType = acc[variation.product_id].find(
+              (v: any) => v.type === variation.type
+            );
+            if (existingType) {
+              existingType.value.push(variation.variation_value);
+              existingType.stock.push(variation.stock_quantity);
+            } else {
+              acc[variation.product_id].push({
+                type: variation.type,
+                value: [variation.variation_value],
+                stock: [variation.stock_quantity],
+              });
+            }
+            return acc;
+          }, {});
+
+          const productsWithVariants = productsWithMappedVariants.map(
+            (product) => ({
+              ...product,
+              variants: groupedVariations?.[product.id] || [],
+            })
+          );
+          setProducts(productsWithVariants);
+        } else {
+          setProducts([]);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error fetching products",
+          description: error.message,
+          variant: "destructive",
         });
-
-        const productIds = productsWithMappedVariants.map(p => p.id);
-        const { data: variationsData, error: variationsError } = await supabase
-          .from("product_variations")
-          .select("*")
-          .in("product_id", productIds) as { data: any[] | null, error: any };
-
-        if (variationsError) throw variationsError;
-
-        const groupedVariations = variationsData?.reduce((acc, variation) => {
-          if (!acc[variation.product_id]) {
-            acc[variation.product_id] = [];
-          }
-          const existingType = acc[variation.product_id].find((v: any) => v.type === variation.type);
-          if (existingType) {
-            existingType.value.push(variation.variation_value);
-            existingType.stock.push(variation.stock_quantity);
-          } else {
-            acc[variation.product_id].push({
-              type: variation.type,
-              value: [variation.variation_value],
-              stock: [variation.stock_quantity],
-            });
-          }
-          return acc;
-        }, {});
-
-        const productsWithVariants = productsWithMappedVariants.map(product => ({
-          ...product,
-          variants: groupedVariations?.[product.id] || [],
-        }));
-        setProducts(productsWithVariants);
-      } else {
-        setProducts([]);
+      } finally {
       }
-    } catch (error: any) {
-      toast({
-        title: "Error fetching products",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-    }
-  }, [toast]);
+    },
+    [toast]
+  );
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -161,13 +223,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
   }, [supabase, toast]);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(filterStatus);
     fetchCategories();
-  }, [fetchProducts, fetchCategories]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  }, [fetchProducts, fetchCategories, filterStatus]);
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,13 +233,21 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
 
     setIsSubmitting(true);
 
-    const generatedSlug = editProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-*|-*$/g, '');
+    const generatedSlug = editProduct.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-*|-*$/g, "");
 
     try {
       let lowestPrice = editProduct.price;
 
-      if (editProduct.variantCombinations && editProduct.variantCombinations.length > 0) {
-        const prices = editProduct.variantCombinations.map(vc => vc.price).filter((price): price is number => price !== null);
+      if (
+        editProduct.variantCombinations &&
+        editProduct.variantCombinations.length > 0
+      ) {
+        const prices = editProduct.variantCombinations
+          .map((vc) => vc.price)
+          .filter((price): price is number => price !== null);
         if (prices.length > 0) {
           lowestPrice = Math.min(...prices);
         }
@@ -199,18 +265,21 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         variantCombinations: editProduct.variantCombinations,
       };
 
-      const response = await fetch(`/api/admin/products?id=${currentProductToEdit.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ productData, editVariants }),
-      });
+      const response = await fetch(
+        `/api/admin/products?id=${currentProductToEdit.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ productData, editVariants }),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to update product');
+        throw new Error(result.error || "Failed to update product");
       } else {
         toast({
           title: "Product updated successfully!",
@@ -220,7 +289,7 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
 
       setShowEditProductForm(false);
       setIsSubmitting(false);
-      fetchProducts();
+      fetchProducts(filterStatus);
     } catch (error: any) {
       toast({
         title: "Error updating product",
@@ -233,16 +302,24 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     setIsAddingProduct(true);
 
-    const generatedSlug = newProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-*|-*$/g, '');
+    const generatedSlug = newProduct.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-*|-*$/g, "");
 
     try {
       let lowestPrice = newProduct.price; // Default to existing price
 
-      if (newProduct.variantCombinations && newProduct.variantCombinations.length > 0) {
-        const prices = newProduct.variantCombinations.map(vc => vc.price).filter((price): price is number => price !== null);
+      if (
+        newProduct.variantCombinations &&
+        newProduct.variantCombinations.length > 0
+      ) {
+        const prices = newProduct.variantCombinations
+          .map((vc) => vc.price)
+          .filter((price): price is number => price !== null);
         lowestPrice = Math.min(...prices);
       }
 
@@ -258,10 +335,10 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         variantCombinations: newProduct.variantCombinations,
       };
 
-      const response = await fetch('/api/admin/products', {
-        method: 'POST',
+      const response = await fetch("/api/admin/products", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ productData, variants }),
       });
@@ -269,7 +346,7 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to add product');
+        throw new Error(result.error || "Failed to add product");
       } else {
         toast({
           title: "Product added successfully!",
@@ -286,14 +363,14 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         stock: 0,
         category_id: "",
         image_urls: [],
-        is_active: true,
+        is_active: "active",
         slug: "",
         variantCombinations: [],
       });
       setVariants([{ type: "", value: [""], stock: [0], price: [0] }]);
       setShowAddProductForm(false);
-      fetchProducts();
-      } catch (error: any) {
+      fetchProducts(filterStatus);
+    } catch (error: any) {
       toast({
         title: "Error adding product",
         description: error.message,
@@ -302,63 +379,79 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
     } finally {
       setIsAddingProduct(false);
     }
-  }
+  };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isEditForm: boolean = false) => {
-    if (!e.target.files) return
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isEditForm: boolean = false
+  ) => {
+    if (!e.target.files) return;
 
-    const files = Array.from(e.target.files)
-    const uploadedImageUrls: string[] = []
+    const files = Array.from(e.target.files);
+    const uploadedImageUrls: string[] = [];
 
     for (const file of files) {
-      const { publicUrl, error } = await uploadProductImage(file)
+      const { publicUrl, error } = await uploadProductImage(file);
 
       if (error) {
         toast({
           title: "Image upload failed",
           description: error.message,
           variant: "destructive",
-        })
-        continue
+        });
+        continue;
       }
 
-      uploadedImageUrls.push(publicUrl)
+      uploadedImageUrls.push(publicUrl);
     }
 
     if (isEditForm) {
       setEditProduct((prev) => ({
         ...prev,
         image_urls: [...prev.image_urls, ...uploadedImageUrls].slice(0, 3),
-      }))
+      }));
     } else {
       setNewProduct((prev) => ({
         ...prev,
         image_urls: [...prev.image_urls, ...uploadedImageUrls].slice(0, 3),
-      }))
+      }));
     }
-  }
+  };
 
   const handleRemoveImage = (index: number, isEditForm: boolean = false) => {
     if (isEditForm) {
-      const newImageUrls = editProduct.image_urls.filter((_: string, i: number) => i !== index);
+      const newImageUrls = editProduct.image_urls.filter(
+        (_: string, i: number) => i !== index
+      );
       setEditProduct((prev) => ({ ...prev, image_urls: newImageUrls }));
     } else {
-      const newImageUrls = newProduct.image_urls.filter((_: string, i: number) => i !== index);
+      const newImageUrls = newProduct.image_urls.filter(
+        (_: string, i: number) => i !== index
+      );
       setNewProduct((prev) => ({ ...prev, image_urls: newImageUrls }));
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, isEditForm: boolean = false) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+    isEditForm: boolean = false
+  ) => {
     const { name, value, type } = e.target;
 
     const setter = isEditForm ? setEditProduct : setNewProduct;
 
-    if (name === "is_active") {
-      setter((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-    } else if (name === "image_urls") {
-      setter((prev) => ({ ...prev, [name]: value.split(',').map((url: string) => url.trim()) }));
+    if (name === "image_urls") {
+      setter((prev) => ({
+        ...prev,
+        [name]: value.split(",").map((url: string) => url.trim()),
+      }));
     } else if (type === "number") {
-      setter((prev) => ({ ...prev, [name]: value === "" ? null : parseFloat(value) }));
+      setter((prev) => ({
+        ...prev,
+        [name]: value === "" ? null : parseFloat(value),
+      }));
     } else {
       setter((prev) => ({ ...prev, [name]: value }));
     }
@@ -404,7 +497,10 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
 
   const handleAddVariant = () => {
     const setter = isEditingProduct ? setEditVariants : setVariants;
-    setter((prev) => [...prev, { type: "", value: [""], price: [], stock: [] }]);
+    setter((prev) => [
+      ...prev,
+      { type: "", value: [""], price: [], stock: [] },
+    ]);
   };
 
   const handleRemoveVariant = (idx: number) => {
@@ -458,8 +554,6 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
     );
   };
 
-
-
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm("Are you sure you want to delete this product?")) {
       return;
@@ -480,7 +574,7 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         title: "Product deleted successfully!",
         description: "The product has been removed.",
       });
-      fetchProducts();
+      fetchProducts(filterStatus);
     } catch (error: any) {
       toast({
         title: "Error deleting product",
@@ -527,7 +621,7 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         description: "The product details have been saved.",
       });
       setShowEditProductForm(false);
-      fetchProducts();
+      fetchProducts(filterStatus);
     } catch (error: any) {
       toast({
         title: "Error updating product",
@@ -540,24 +634,24 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
   };
 
   const handleEditProduct = (productId: string) => {
-    const product = products.find(p => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (!product) return;
 
     setCurrentProductToEdit(product);
     setEditProduct({
-        name: product.name,
-        description: product.description || "",
-        price: product.price,
-        stock: product.stock,
-        category_id: product.category_id,
-        image_urls: product.image_urls || [],
-        is_active: product.is_active,
-        slug: product.slug,
-        variantCombinations: product.variantCombinations || [],
-      });
+      name: product.name,
+      description: product.description || "",
+      price: product.price,
+      stock: product.stock,
+      category_id: product.category_id,
+      image_urls: product.image_urls || [],
+      is_active: product.is_active,
+      slug: product.slug,
+      variantCombinations: product.variantCombinations || [],
+    });
     setEditVariants(
       product.variants && product.variants.length > 0
-        ? product.variants.map(variant => ({
+        ? product.variants.map((variant) => ({
             ...variant,
             price: variant.price || [],
             stock: variant.stock || [],
@@ -565,7 +659,7 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         : [{ type: "", value: [""], price: [], stock: [] }]
     );
     setIsEditingProduct(true); // Set the new state for modal editing
-    setModalFor('edit');
+    setModalFor("edit");
     setShowEditProductForm(true);
   };
 
@@ -576,9 +670,14 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Products</h1>
-            <p className="text-sm text-muted-foreground">Manage your Mapita heritage product inventory</p>
+            <p className="text-sm text-muted-foreground">
+              Manage your Mapita heritage product inventory
+            </p>
           </div>
-          <Dialog open={showAddProductForm} onOpenChange={setShowAddProductForm}>
+          <Dialog
+            open={showAddProductForm}
+            onOpenChange={setShowAddProductForm}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -593,7 +692,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                 <form onSubmit={handleAddProduct} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="name" className="mb-2">Product Name</Label>
+                      <Label htmlFor="name" className="mb-2">
+                        Product Name
+                      </Label>
                       <Input
                         id="name"
                         name="name"
@@ -603,8 +704,18 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="category" className="mb-2">Category</Label>
-                      <Select onValueChange={(value: string) => setNewProduct(prev => ({ ...prev, category_id: value }))} value={newProduct.category_id}>
+                      <Label htmlFor="category" className="mb-2">
+                        Category
+                      </Label>
+                      <Select
+                        onValueChange={(value: string) =>
+                          setNewProduct((prev) => ({
+                            ...prev,
+                            category_id: value,
+                          }))
+                        }
+                        value={newProduct.category_id}
+                      >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Category" />
                         </SelectTrigger>
@@ -619,8 +730,6 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                     </div>
                   </div>
 
-
-
                   <div>
                     <Label className="mb-2">Variants (Type + Value)</Label>
                     <div className="space-y-2">
@@ -629,22 +738,35 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                           <Input
                             placeholder="Variant Type (e.g., Color)"
                             value={v.type}
-                            onChange={(e) => handleVariantChange(idx, "type", e.target.value)}
+                            onChange={(e) =>
+                              handleVariantChange(idx, "type", e.target.value)
+                            }
                           />
                           <div className="col-span-2 space-y-2">
                             {v.value.map((val, valueIdx) => (
-                              <div key={valueIdx} className="flex gap-2 items-center">
+                              <div
+                                key={valueIdx}
+                                className="flex gap-2 items-center"
+                              >
                                 <Input
                                   placeholder="Variant Value (e.g., Red)"
                                   value={val}
-                                  onChange={(e) => handleVariantValueChange(idx, valueIdx, e.target.value)}
+                                  onChange={(e) =>
+                                    handleVariantValueChange(
+                                      idx,
+                                      valueIdx,
+                                      e.target.value
+                                    )
+                                  }
                                 />
                                 {v.value.length > 1 && (
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleRemoveVariantValue(idx, valueIdx)}
+                                    onClick={() =>
+                                      handleRemoveVariantValue(idx, valueIdx)
+                                    }
                                   >
                                     <MinusCircle className="h-4 w-4 text-red-500" />
                                   </Button>
@@ -674,7 +796,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                           <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => handleRemoveVariant(variants.length - 1)}
+                            onClick={() =>
+                              handleRemoveVariant(variants.length - 1)
+                            }
                           >
                             Remove last
                           </Button>
@@ -683,41 +807,60 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                     </div>
                   </div>
 
-
-                  <div className="flex items-center justify-between p-4 border rounded-md mt-4 cursor-pointer" onClick={() => {
-                    setModalFor('add');
-                    setShowVariantPriceStockModal(true);
-                  }}>
+                  <div
+                    className="flex items-center justify-between p-4 border rounded-md mt-4 cursor-pointer"
+                    onClick={() => {
+                      setModalFor("add");
+                      setShowVariantPriceStockModal(true);
+                    }}
+                  >
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">Price/Stock</p>
-                      <p className="text-sm text-gray-500">Set price and stock for variants</p>
+                      <p className="text-sm text-gray-500">
+                        Set price and stock for variants
+                      </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-gray-500" />
                   </div>
 
-
-
                   <div>
-                    <Label htmlFor="edit-imageFiles" className="mb-2">Product Images (Max 3)</Label>
+                    <Label htmlFor="edit-imageFiles" className="mb-2">
+                      Product Images (Max 3)
+                    </Label>
                     <div className="flex items-center gap-2">
-                      {newProduct.image_urls.map((imageUrl: string, index: number) => (
-                        <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden">
-                          <Image src={imageUrl} alt={`Product Image ${index + 1}`} layout="fill" objectFit="cover" />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6"
-                            onClick={() => handleRemoveImage(index, false)}
+                      {newProduct.image_urls.map(
+                        (imageUrl: string, index: number) => (
+                          <div
+                            key={index}
+                            className="relative w-24 h-24 rounded-md overflow-hidden"
                           >
-                            <XIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                            <Image
+                              src={imageUrl}
+                              alt={`Product Image ${index + 1}`}
+                              layout="fill"
+                              objectFit="cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6"
+                              onClick={() => handleRemoveImage(index, false)}
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      )}
                       {newProduct.image_urls.length < 3 && (
-                        <label htmlFor="image-upload" className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <label
+                          htmlFor="image-upload"
+                          className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
                           <Plus className="h-6 w-6 text-gray-400" />
-                          <span className="text-xs text-gray-500">Add Image</span>
+                          <span className="text-xs text-gray-500">
+                            Add Image
+                          </span>
                           <Input
                             id="image-upload"
                             type="file"
@@ -732,7 +875,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                   </div>
 
                   <div>
-                    <Label htmlFor="description" className="mb-2">Description</Label>
+                    <Label htmlFor="description" className="mb-2">
+                      Description
+                    </Label>
                     <Textarea
                       id="description"
                       name="description"
@@ -742,7 +887,31 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isAddingProduct}>
+                  <div>
+                    <Label htmlFor="status" className="mb-2">
+                      Status
+                    </Label>
+                    <Select
+                      value={newProduct.is_active}
+                      onValueChange={(value: string) =>
+                        setNewProduct((prev) => ({ ...prev, is_active: value }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="pre-order">Pre-order</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isAddingProduct}
+                  >
                     {isAddingProduct ? "Adding..." : "Add Product"}
                   </Button>
                 </form>
@@ -750,7 +919,10 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showEditProductForm} onOpenChange={setShowEditProductForm}>
+          <Dialog
+            open={showEditProductForm}
+            onOpenChange={setShowEditProductForm}
+          >
             <DialogContent className="sm:max-w-2xl overflow-y-auto max-h-[80vh]">
               <DialogHeader>
                 <DialogTitle>Edit Product</DialogTitle>
@@ -759,7 +931,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                 <form onSubmit={handleEditProductSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="edit-name" className="mb-2">Product Name</Label>
+                      <Label htmlFor="edit-name" className="mb-2">
+                        Product Name
+                      </Label>
                       <Input
                         id="edit-name"
                         name="name"
@@ -772,7 +946,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                       <Label htmlFor="edit-category">Category</Label>
                       <Select
                         value={editProduct.category_id}
-                        onValueChange={(value) => setEditProduct({ ...editProduct, category_id: value })}
+                        onValueChange={(value) =>
+                          setEditProduct({ ...editProduct, category_id: value })
+                        }
                       >
                         <SelectTrigger id="edit-category">
                           <SelectValue placeholder="Select a category" />
@@ -791,45 +967,59 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                   <div>
                     <Label className="mb-2">Variants (Type + Value)</Label>
                     <div className="space-y-2">
-                      {editVariants.map((v: GroupedProductVariant, idx: number) => (
-                        <div key={idx} className="grid grid-cols-3 gap-2">
-                          <Input
-                            placeholder="Variant Type (e.g., Color)"
-                            value={v.type}
-                            onChange={(e) => handleVariantChange(idx, "type", e.target.value)}
-                          />
-                          <div className="col-span-2 space-y-2">
-                            {v.value.map((val, valueIdx) => (
-                              <div key={valueIdx} className="flex gap-2 items-center">
-                                <Input
-                                  placeholder="Variant Value (e.g., Red)"
-                                  value={val}
-                                  onChange={(e) => handleVariantValueChange(idx, valueIdx, e.target.value)}
-                                />
-                                {v.value.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleRemoveVariantValue(idx, valueIdx)}
-                                  >
-                                    <MinusCircle className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAddVariantValue(idx)}
-                            >
-                              Add Value
-                            </Button>
+                      {editVariants.map(
+                        (v: GroupedProductVariant, idx: number) => (
+                          <div key={idx} className="grid grid-cols-3 gap-2">
+                            <Input
+                              placeholder="Variant Type (e.g., Color)"
+                              value={v.type}
+                              onChange={(e) =>
+                                handleVariantChange(idx, "type", e.target.value)
+                              }
+                            />
+                            <div className="col-span-2 space-y-2">
+                              {v.value.map((val, valueIdx) => (
+                                <div
+                                  key={valueIdx}
+                                  className="flex gap-2 items-center"
+                                >
+                                  <Input
+                                    placeholder="Variant Value (e.g., Red)"
+                                    value={val}
+                                    onChange={(e) =>
+                                      handleVariantValueChange(
+                                        idx,
+                                        valueIdx,
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                  {v.value.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        handleRemoveVariantValue(idx, valueIdx)
+                                      }
+                                    >
+                                      <MinusCircle className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddVariantValue(idx)}
+                              >
+                                Add Value
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-
+                        )
+                      )}
 
                       <div className="flex gap-2">
                         <Button
@@ -843,7 +1033,9 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                           <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => handleRemoveVariant(editVariants.length - 1)}
+                            onClick={() =>
+                              handleRemoveVariant(editVariants.length - 1)
+                            }
                           >
                             Remove last
                           </Button>
@@ -852,40 +1044,60 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                     </div>
                   </div>
 
-
-                  <div className="flex items-center justify-between p-4 border rounded-md mt-4 cursor-pointer" onClick={() => {
-                    setModalFor('edit');
-                    setShowVariantPriceStockModal(true);
-                  }}>
+                  <div
+                    className="flex items-center justify-between p-4 border rounded-md mt-4 cursor-pointer"
+                    onClick={() => {
+                      setModalFor("edit");
+                      setShowVariantPriceStockModal(true);
+                    }}
+                  >
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">Price/Stock</p>
-                      <p className="text-sm text-gray-500">Set price and stock for variants</p>
+                      <p className="text-sm text-gray-500">
+                        Set price and stock for variants
+                      </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-gray-500" />
                   </div>
-      
 
-                   <div>
-                    <Label htmlFor="edit-imageFiles" className="mb-2">Product Images (Max 3)</Label>
+                  <div>
+                    <Label htmlFor="edit-imageFiles" className="mb-2">
+                      Product Images (Max 3)
+                    </Label>
                     <div className="flex items-center gap-2">
-                      {editProduct.image_urls.map((imageUrl: string, index: number) => (
-                        <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden">
-                          <Image src={imageUrl} alt={`Product Image ${index + 1}`} layout="fill" objectFit="cover" />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6"
-                            onClick={() => handleRemoveImage(index, true)}
+                      {editProduct.image_urls.map(
+                        (imageUrl: string, index: number) => (
+                          <div
+                            key={index}
+                            className="relative w-24 h-24 rounded-md overflow-hidden"
                           >
-                            <XIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                            <Image
+                              src={imageUrl}
+                              alt={`Product Image ${index + 1}`}
+                              layout="fill"
+                              objectFit="cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6"
+                              onClick={() => handleRemoveImage(index, true)}
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      )}
                       {editProduct.image_urls.length < 3 && (
-                        <label htmlFor="edit-image-upload" className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <label
+                          htmlFor="edit-image-upload"
+                          className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
                           <Plus className="h-6 w-6 text-gray-400" />
-                          <span className="text-xs text-gray-500">Add Image</span>
+                          <span className="text-xs text-gray-500">
+                            Add Image
+                          </span>
                           <Input
                             id="edit-image-upload"
                             type="file"
@@ -899,8 +1111,10 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                     </div>
                   </div>
 
- <div>
-                    <Label htmlFor="edit-description" className="mb-2">Description</Label>
+                  <div>
+                    <Label htmlFor="edit-description" className="mb-2">
+                      Description
+                    </Label>
                     <Textarea
                       id="edit-description"
                       name="description"
@@ -910,7 +1124,34 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <div>
+                    <Label htmlFor="edit-status" className="mb-2">
+                      Status
+                    </Label>
+                    <Select
+                      value={editProduct.is_active}
+                      onValueChange={(value: string) =>
+                        setEditProduct((prev) => ({
+                          ...prev,
+                          is_active: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger id="edit-status" className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="pre-order">Pre-order</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? "Updating..." : "Update Product"}
                   </Button>
                 </form>
@@ -918,7 +1159,25 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
             </DialogContent>
           </Dialog>
         </div>
-            <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+        <div className="mb-4">
+          <Label className="mb-2">Filter by Status</Label>
+          <Select
+            value={filterStatus}
+            onValueChange={(value: "all" | "active" | "pre-order") =>
+              setFilterStatus(value)
+            }
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="pre-order">Pre-order</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
@@ -944,28 +1203,58 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
                       <span>{product.name}</span>
                     </div>
                   </TableCell>
+                  <TableCell>{product.categories?.name}</TableCell>
                   <TableCell>
-                    {product.categories?.name}
-                  </TableCell>
-                  <TableCell>
-                    ₱{product.variantCombinations && product.variantCombinations.length > 0
-                      ? Math.min(...product.variantCombinations.map(vc => vc.price).filter((price): price is number => price !== null))
+                    ₱
+                    {product.variantCombinations &&
+                    product.variantCombinations.length > 0
+                      ? Math.min(
+                          ...product.variantCombinations
+                            .map((vc) => vc.price)
+                            .filter((price): price is number => price !== null)
+                        )
                       : "N/A"}
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={product.is_active ? "secondary" : "outline"}
-                      className={product.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
+                      variant={
+                        product.is_active === "active"
+                          ? "secondary"
+                          : product.is_active === "pre-order"
+                          ? "secondary"
+                          : "destructive"
+                      }
+                      className={
+                        product.is_active === "active"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : product.is_active === "pre-order"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : ""
+                      }
                     >
-                      {product.is_active ? "Active" : "Inactive"}
+                      {product.is_active === "active"
+                        ? "Active"
+                        : product.is_active === "pre-order"
+                        ? "Pre-order"
+                        : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditProduct(product.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditProduct(product.id)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDeleteProduct(product.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-600"
+                        onClick={() => handleDeleteProduct(product.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -974,7 +1263,10 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
               ))}
               {!products?.length && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="h-32 text-center text-muted-foreground"
+                  >
                     No products found. Start by adding your first product.
                   </TableCell>
                 </TableRow>
@@ -984,26 +1276,37 @@ interface RawProductData extends Omit<Product, 'variantCombinations'> {
         </div>
       </main>
       <VariantPriceStockModal
-        key={modalFor === 'add' ? 'new-product' : currentProductToEdit?.id || 'edit-product'}
+        key={
+          modalFor === "add"
+            ? "new-product"
+            : currentProductToEdit?.id || "edit-product"
+        }
         isOpen={showVariantPriceStockModal}
         onClose={() => setShowVariantPriceStockModal(false)}
-        productVariants={modalFor === 'add' ? variants.map(v => ({ name: v.type, values: v.value })) : editVariants.map(v => ({ name: v.type, values: v.value }))}
-        initialVariantCombinations={modalFor === 'add' ? newProduct.variantCombinations : editProduct.variantCombinations}
+        productVariants={
+          modalFor === "add"
+            ? variants.map((v) => ({ name: v.type, values: v.value }))
+            : editVariants.map((v) => ({ name: v.type, values: v.value }))
+        }
+        initialVariantCombinations={
+          modalFor === "add"
+            ? newProduct.variantCombinations
+            : editProduct.variantCombinations
+        }
         onSave={(data) => {
-          if (modalFor === 'add') {
-            setNewProduct(prev => ({
+          if (modalFor === "add") {
+            setNewProduct((prev) => ({
               ...prev,
               variantCombinations: data,
             }));
-          } else if (modalFor === 'edit') {
-            setEditProduct(prev => ({
+          } else if (modalFor === "edit") {
+            setEditProduct((prev) => ({
               ...prev,
               variantCombinations: data,
             }));
           }
           setShowVariantPriceStockModal(false);
         }}
-
       />
     </div>
   );
