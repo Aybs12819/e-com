@@ -32,7 +32,8 @@ create table products (
   description text,
   base_price decimal(12,2) not null,
   images text[] default '{}',
-  is_active boolean default true,
+  is_active text default 'active',
+  preorder_lead_time text, -- New column for pre-order lead time
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -67,7 +68,8 @@ create policy "Users can insert their own profile" on profiles for insert with c
 create policy "Categories are viewable by everyone" on categories for select using (true);
 
 -- Products are viewable by everyone
-create policy "Products are viewable by everyone" on products for select using (is_active = true);
+DROP POLICY IF EXISTS "Products are viewable by everyone" ON products;
+create policy "Products are viewable by everyone" on products for select using (is_active IN ('active', 'pre-order'));
 
 -- Variations are viewable by everyone
 create policy "Variations are viewable by everyone" on product_variations for select using (true);

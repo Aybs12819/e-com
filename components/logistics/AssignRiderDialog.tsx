@@ -64,7 +64,10 @@ export function AssignRiderDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customProductId: orderId,
-            customProductData: { status: "Delivery Rider Assigned" },
+            customProductData: {
+              status: "assigned",
+              rider_id: selectedRider,
+            },
           }),
         });
 
@@ -80,7 +83,7 @@ export function AssignRiderDialog({
           .from("orders")
           .update({
             rider_id: selectedRider,
-            status: "delivery rider assigned",
+            status: "assigned",
           })
           .eq("id", orderId);
 
@@ -161,7 +164,7 @@ export function AssignRiderDialog({
               <SelectContent>
                 {riders.map((rider) => (
                   <SelectItem key={rider.id} value={rider.id}>
-                    {rider.full_name}
+                    {rider.full_name} - {rider.address}
                   </SelectItem>
                 ))}
               </SelectContent>

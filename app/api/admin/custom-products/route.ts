@@ -83,6 +83,8 @@ export async function PUT(req: Request) {
       updateData.status = customProductData.status;
     if (customProductData.customer_id !== undefined)
       updateData.customer_id = customProductData.customer_id;
+    if (customProductData.rider_id !== undefined)
+      updateData.rider_id = customProductData.rider_id;
 
     const { error: customProductUpdateError } = await adminSupabase
       .from("custom_products")

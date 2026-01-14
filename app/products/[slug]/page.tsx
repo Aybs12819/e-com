@@ -6,9 +6,11 @@ import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, ShieldCheck, Truck } from "lucide-react"
 import { useState, useEffect, useMemo, useCallback } from "react"
+import { ProductReviewsModal } from "@/components/ProductReviewsModal"
 import { useRouter, useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getShippingFee, shippingFees } from "@/lib/shipping";
+import Script from "next/script";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProductDetailPage() {
@@ -27,6 +29,7 @@ export default function ProductDetailPage() {
   const [isAddressParsable, setIsAddressParsable] = useState<boolean>(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState<boolean>(true); // State for shipping fee
   const [showCalculatingShipping, setShowCalculatingShipping] = useState<boolean>(false); // New state for showing "Calculating shipping..."
+  const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false); // State for reviews modal
 
   const supabase = useMemo(() => supabaseClient, [])
   const router = useRouter()
@@ -147,19 +150,33 @@ export default function ProductDetailPage() {
 
     if (productData) {
       let soldCount = 0;
-      // Only fetch sold_count if productData.id is a valid UUID
-      if (productData.id && typeof productData.id === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(productData.id)) {
+      const isValidProductId = productData.id && typeof productData.id === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(productData.id);
 
+      if (isValidProductId) {
         const { data: soldCountData, error: soldCountError } = await supabase
           .rpc('get_product_sold_count', { p_product_id: productData.id });
-
         if (soldCountData && !soldCountError) {
           soldCount = soldCountData;
         } else if (soldCountError) {
           console.error("Error fetching sold count:", soldCountError.message);
         }
+
+        const { data: ratingData, error: averageRatingError } = await supabase
+          .rpc('get_product_average_rating', { p_product_id: productData.id });
+
+        if (ratingData && !averageRatingError && ratingData.length > 0) {
+          productData.average_rating = Number(ratingData[0].average_rating) || 0;
+          productData.review_count = Number(ratingData[0].review_count) || 0;
+        } else if (averageRatingError) {
+          console.error("Error fetching average rating:", averageRatingError.message);
+          productData.average_rating = 0;
+          productData.review_count = 0;
+        } else {
+          productData.average_rating = 0;
+          productData.review_count = 0;
+        }
       } else {
-        console.warn("Skipping sold count fetch due to invalid productData.id:", productData.id);
+        console.warn("Skipping sold count and average rating fetch due to invalid productData.id:", productData.id);
       }
 
       const finalProductData = {
@@ -171,27 +188,6 @@ export default function ProductDetailPage() {
       setSelectedImage(finalProductData.image_urls?.[0] || null);
       setDisplayPrice(finalProductData.base_price); // Initialize display price
 
-      // Initialize selected variants with the first available option for each type
-      if (finalProductData.product_variations && finalProductData.product_variations.length > 0) {
-        const initialSelected: { [key: string]: string } = {};
-        const groupedVariations = finalProductData.product_variations.reduce((acc: { [key: string]: string[] }, variation: any) => {
-          const { variation_name, variation_value } = variation;
-          if (!acc[variation_name]) {
-            acc[variation_name] = [];
-          }
-          if (!acc[variation_name].includes(variation_value)) {
-            acc[variation_name].push(variation_value);
-          }
-          return acc;
-        }, {});
-
-        for (const type in groupedVariations) {
-          if (groupedVariations[type].length > 0) {
-            initialSelected[type] = groupedVariations[type][0];
-          }
-        }
-        setSelectedVariants(initialSelected);
-      }
       console.log("Fetched product:", finalProductData); // Debugging line
     } else {
       setProduct(null);
@@ -442,6 +438,7 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
+
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 bg-white p-6 rounded-lg shadow-sm">
           {/* Image Gallery */}
@@ -472,8 +469,9 @@ export default function ProductDetailPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-              <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
-                <span>{product.sold_count || 0} Sold</span>
+              {/* Removed the original rating display */}
+              <div className="mt-1 text-sm text-gray-500">
+                {product.sold_count || 0} Sold
               </div>
             </div>
 
@@ -530,13 +528,18 @@ export default function ProductDetailPage() {
             )}
 
             {/* Shipping */}
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Truck className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-black">
+              <Truck className="h-4 w-4 text-green-500" />
               <span>
                 Shipping Fee:{" "}
                 {shippingFee !== null ? ` ₱${shippingFee.toFixed(2)}` : "Calculating..."}
               </span>
             </div>
+            {product?.is_active === "pre-order" && product?.preorder_lead_time && (
+              <div className="flex items-center gap-2 text-sm font-bold text-orange-500">
+                <span>Pre-order (ships in {product.preorder_lead_time})</span>
+              </div>
+            )}
           <div className="flex gap-4 pt-6">
               <Button
                 variant="outline"
@@ -565,16 +568,22 @@ export default function ProductDetailPage() {
 
         {/* Description Section */}
         <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
+          <h2 className="text-lg font-bold mb-4 uppercase tracking-wider bg-slate-50 p-3 flex justify-between items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-400">★</span> {product.average_rating?.toFixed(1) || '0.0'} Product Ratings ({product.review_count || 0})
+            </div>
+            <Button variant="link" className="pl-0" onClick={() => setIsReviewsModalOpen(true)}>View All</Button>
+          </h2>
+        </div>
+
+        <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-lg font-bold mb-4 uppercase tracking-wider bg-slate-50 p-3">Product Specifications</h2>
           <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
             <div className="grid grid-cols-[150px_1fr] gap-4">
               <span className="text-gray-400">Category</span>
               <span className="text-primary font-medium">{product.categories?.name}</span>
             </div>
-            <div className="grid grid-cols-[150px_1fr] gap-4">
-              <span className="text-gray-400">Stock</span>
-              <span>{product.variantCombinations?.reduce((total: number, combination: any) => total + combination.stock, 0) || 0}</span>
-            </div>
+           
             <div className="grid grid-cols-[150px_1fr] gap-4">
               <span className="text-gray-400">Ships From</span>
               <span>Mapita, Aguilar, Pangasinan</span>
@@ -585,7 +594,15 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
-      </main>
+        <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
+     </main>
+      {product && (
+        <ProductReviewsModal
+          productId={product.id}
+          isOpen={isReviewsModalOpen}
+          onClose={() => setIsReviewsModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

@@ -1,0 +1,2 @@
+-- Add RLS policy for rider role to view customer_accounts for their assigned deliveries
+create policy "Riders can view customer accounts for their assigned deliveries" on customer_accounts for select using (id in (select customer_id from orders where id in (select order_id from deliveries where rider_id = auth.uid())));

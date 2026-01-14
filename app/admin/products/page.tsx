@@ -46,6 +46,7 @@ import {
   VariantPriceStockModal,
   VariantCombination,
 } from "@/components/admin/VariantPriceStockModal";
+import { ProductReviewsModal } from "@/components/ProductReviewsModal";
 
 export interface NewProductState {
   name: string;
@@ -56,6 +57,7 @@ export interface NewProductState {
   image_urls: string[];
   variantCombinations: VariantCombination[];
   is_active: string;
+  preorder_lead_time?: string; // Added preorder_lead_time
   slug: string;
 }
 
@@ -80,6 +82,8 @@ export default function AdminProductsPage() {
   const [showVariantPriceStockModal, setShowVariantPriceStockModal] =
     useState(false);
   const [modalFor, setModalFor] = useState<"add" | "edit" | null>(null);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [selectedProductIdForReviews, setSelectedProductIdForReviews] = useState<string | null>(null);
   const [newProduct, setNewProduct] = useState<NewProductState>({
     name: "",
     description: "",
@@ -90,6 +94,7 @@ export default function AdminProductsPage() {
     is_active: "active",
     slug: "",
     variantCombinations: [],
+    preorder_lead_time: "", // Initialize preorder_lead_time
   });
   const [editProduct, setEditProduct] = useState<NewProductState>({
     name: "",
@@ -101,6 +106,7 @@ export default function AdminProductsPage() {
     is_active: "active",
     slug: "",
     variantCombinations: [],
+    preorder_lead_time: "", // Initialize preorder_lead_time
   });
   const [variants, setVariants] = useState<GroupedProductVariant[]>([
     { type: "", value: [""], price: [], stock: [] },
@@ -119,13 +125,16 @@ export default function AdminProductsPage() {
   const fetchProducts = useCallback(
     async (filter: string = "all") => {
       try {
-        console.log("Fetching products with filter:", filter);
+        // console.log("Fetching products with filter:", filter); // Removed console.log
+        // console.log("Filter Status before Supabase query:", filter); // Removed console.log
         let query = supabase
           .from("products")
           .select("*, categories(id, name), variant_combinations")
           .order("created_at", { ascending: false });
 
-        if (filter !== "all") {
+        if (filter === "all") {
+          query = query.in("is_active", ["active", "pre-order"]);
+        } else {
           query = query.eq("is_active", filter);
         }
 
@@ -134,11 +143,12 @@ export default function AdminProductsPage() {
           error: any;
         };
 
-        console.log(
-          "Fetched products data:",
-          productsData?.length || 0,
-          "items"
-        );
+        // console.log(
+        //   "Fetched products data:",
+        //   productsData?.length || 0,
+        //   "items",
+        //   productsData // Add this line to log the actual data
+        // );
 
         if (productsError) throw productsError;
 
@@ -226,6 +236,16 @@ export default function AdminProductsPage() {
     fetchProducts(filterStatus);
     fetchCategories();
   }, [fetchProducts, fetchCategories, filterStatus]);
+
+  const handleViewReviews = (productId: string) => {
+    setSelectedProductIdForReviews(productId);
+    setShowReviewsModal(true);
+  };
+
+  const handleCloseReviewsModal = () => {
+    setShowReviewsModal(false);
+    setSelectedProductIdForReviews(null);
+  };
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,7 +343,7 @@ export default function AdminProductsPage() {
         lowestPrice = Math.min(...prices);
       }
 
-      const productData = {
+      const productData: NewProductState = { // Explicitly type productData
         name: newProduct.name,
         description: newProduct.description,
         price: Number(lowestPrice), // Ensure price is a number
@@ -333,7 +353,14 @@ export default function AdminProductsPage() {
         is_active: newProduct.is_active,
         slug: generatedSlug,
         variantCombinations: newProduct.variantCombinations,
+        preorder_lead_time: newProduct.preorder_lead_time, // Include preorder_lead_time
       };
+
+      // The conditional assignment is no longer strictly necessary for typing,
+      // but can remain for clarity if desired.
+      // if (newProduct.is_active === "pre-order") {
+      //   productData.preorder_lead_time = newProduct.preorder_lead_time;
+      // }
 
       const response = await fetch("/api/admin/products", {
         method: "POST",
@@ -605,6 +632,9 @@ export default function AdminProductsPage() {
             is_active: editProduct.is_active,
             slug: editProduct.slug,
             variantCombinations: editProduct.variantCombinations,
+            ...(editProduct.is_active === "pre-order" && {
+              preorder_lead_time: editProduct.preorder_lead_time,
+            }),
           },
           variants: editVariants,
         }),
@@ -648,6 +678,7 @@ export default function AdminProductsPage() {
       is_active: product.is_active,
       slug: product.slug,
       variantCombinations: product.variantCombinations || [],
+      preorder_lead_time: product.preorder_lead_time || "",
     });
     setEditVariants(
       product.variants && product.variants.length > 0
@@ -907,6 +938,21 @@ export default function AdminProductsPage() {
                     </Select>
                   </div>
 
+                  {newProduct.is_active === "pre-order" && (
+                    <div>
+                      <Label htmlFor="preorder_lead_time" className="mb-2">
+                        Pre-order Lead Time
+                      </Label>
+                      <Input
+                        id="preorder_lead_time"
+                        name="preorder_lead_time"
+                        value={newProduct.preorder_lead_time || ""} // Provide empty string fallback
+                        onChange={(e) => handleChange(e, false)}
+                        placeholder="e.g., 1-2 DAYS, 15 DAYS, 15-30 DAYS"
+                      />
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     className="w-full"
@@ -1147,6 +1193,21 @@ export default function AdminProductsPage() {
                     </Select>
                   </div>
 
+                  {editProduct.is_active === "pre-order" && (
+                    <div>
+                      <Label htmlFor="edit-preorder_lead_time" className="mb-2">
+                        Pre-order Lead Time
+                      </Label>
+                      <Input
+                        id="edit-preorder_lead_time"
+                        name="preorder_lead_time"
+                        value={editProduct.preorder_lead_time || ""} // Provide empty string fallback
+                        onChange={(e) => handleChange(e, true)}
+                        placeholder="e.g., 1-2 DAYS, 15 DAYS, 15-30 DAYS"
+                      />
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     className="w-full"
@@ -1240,22 +1301,27 @@ export default function AdminProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex items-center justify-end space-x-2">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleEditProduct(product.id)}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewReviews(product.id)}
                       >
-                        <Edit className="h-4 w-4" />
+                        View Reviews
                       </Button>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-600"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditProduct(product.id)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         onClick={() => handleDeleteProduct(product.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        Delete
                       </Button>
                     </div>
                   </TableCell>
@@ -1275,6 +1341,13 @@ export default function AdminProductsPage() {
           </Table>
         </div>
       </main>
+      {showReviewsModal && selectedProductIdForReviews && (
+        <ProductReviewsModal
+          productId={selectedProductIdForReviews}
+          isOpen={showReviewsModal}
+          onClose={handleCloseReviewsModal}
+        />
+      )}
       <VariantPriceStockModal
         key={
           modalFor === "add"

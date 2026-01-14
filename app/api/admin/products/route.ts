@@ -12,6 +12,7 @@ interface ProductDataPayload {
   variantCombinations: VariantCombination[];
   is_active: string;
   slug: string;
+  preorder_lead_time?: string; // Add preorder_lead_time to the payload
 }
 
 interface PostRequestBody {
@@ -50,7 +51,10 @@ export async function POST(req: Request) {
           is_active: productData.is_active,
           slug: productData.slug,
           base_price: basePrice,
-          variant_combinations: productData.variantCombinations, // ✅ ADD THIS
+          variant_combinations: productData.variantCombinations,
+          ...(productData.is_active === "pre-order" && {
+            preorder_lead_time: productData.preorder_lead_time,
+          }),
         },
       ])
       .select("id");
@@ -132,6 +136,9 @@ export async function PUT(req: Request) {
         ...restOfProductData,
         base_price: basePrice,
         variant_combinations: variantCombinations,
+        ...(productData.is_active === "pre-order" && {
+          preorder_lead_time: productData.preorder_lead_time,
+        }),
       })
       .eq("id", productId);
 

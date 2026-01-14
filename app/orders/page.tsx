@@ -10,6 +10,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Product } from "@/lib/types"; // Import Product interface
 import { getEstimatedDays } from "@/lib/shipping";
 import { ReviewModal } from "@/components/ReviewModal";
+import Script from "next/script";
 
 interface ProductVariation {
   id: string;
@@ -212,6 +213,7 @@ export default function MyOrdersPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
+
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">My Purchase</h1>
@@ -346,12 +348,7 @@ export default function MyOrdersPage() {
                           })()}
                         </span>
                       )}
-                      {order.status === "completed" && order.customer_id && (
-                        <ReviewModal
-                          orderId={order.id}
-                          customerId={order.customer_id}
-                        />
-                      )}
+
                     </div>
                   </div>
 
@@ -378,6 +375,13 @@ export default function MyOrdersPage() {
                           <p className="text-xs text-gray-500 mt-1">
                             x{item.quantity}
                           </p>
+                          {order.status === "completed" && order.customer_id && (
+                            <ReviewModal
+                              orderId={order.id}
+                              customerId={order.customer_id}
+                              productId={item.product_id}
+                            />
+                          )}
                         </div>
                         <div className="text-sm font-bold text-primary">
                           ₱{(item.price * item.quantity).toFixed(2)}
@@ -416,9 +420,9 @@ export default function MyOrdersPage() {
                         </>
                       );
                     })()}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
               {/* Render Custom Products */}
               {filteredCustomProducts.map((product) => (
@@ -447,6 +451,7 @@ export default function MyOrdersPage() {
                           <ReviewModal
                             orderId={product.id}
                             customerId={product.customer_id}
+                            productId={product.id}
                           />
                         )}
                     </div>
@@ -490,7 +495,8 @@ export default function MyOrdersPage() {
             </>
           )}
         </div>
-      </main>
+        <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
+     </main>
     </div>
   );
 }

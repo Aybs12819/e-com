@@ -72,7 +72,7 @@ const Index = () => {
                 <p className="text-muted-foreground">Track your e-commerce performance</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <DateRangePicker date={dateRange} setDate={setDateRange} />
+                <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
                 <ExportButtons 
                   orders={orders} 
                   chartData={chartData} 

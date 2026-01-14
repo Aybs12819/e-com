@@ -1,341 +1,325 @@
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
-
-interface ExportButtonsProps {
-  orders: any[];
-  chartData: any[];
-  metrics: {
-    totalGross: number;
-    totalOrders: number;
-    avgOrderValueWithoutShipping: number;
-    totalNet: number;
-  };
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 
-export function ExportButtons({ orders, chartData, metrics }: ExportButtonsProps) {
-  
-  const formatDate = (dateValue: any): string => {
-    if (!dateValue) return "N/A";
-    
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) return "N/A";
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: '2-digit' 
-      });
-    } catch {
-      return "N/A";
-    }
-  };
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
 
-  const formatCurrency = (value: number): string => {
-    return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-  const handleExportPdf = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const primaryColor: [number, number, number] = [41, 98, 255];
-    const darkText: [number, number, number] = [33, 37, 41];
-    const grayText: [number, number, number] = [108, 117, 125];
-    
-    // ===== PAGE 1: COVER & METRICS =====
-    
-    // Header bar
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
-    // Title
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.setFont("helvetica", "bold");
-    doc.text("Sales Report", 14, 26);
-    
-    // Report date
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Generated: ${formatDate(new Date())}`, pageWidth - 14, 26, { align: 'right' });
-    
-    // Metrics Section Title
-    doc.setTextColor(...darkText);
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary Metrics", 14, 58);
-    
-    // Divider line
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(0.5);
-    doc.line(14, 62, pageWidth - 14, 62);
-    
-    // Metrics table with styled cards
-    autoTable(doc, {
-      startY: 70,
-      head: [['Metric', 'Value']],
-      body: [
-        ['Total Gross Sales', formatCurrency(metrics.totalGross)],
-        ['Total Orders', metrics.totalOrders.toString()],
-        ['Average Order Value', formatCurrency(metrics.avgOrderValueWithoutShipping)],
-        ['Total Net Sales', formatCurrency(metrics.totalNet)],
-      ],
-      theme: 'grid',
-      headStyles: {
-        fillColor: primaryColor,
-        textColor: [255, 255, 255],
-        fontSize: 11,
-        fontStyle: 'bold',
-        halign: 'left',
-        cellPadding: 8,
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 217 91% 95%;
+    --accent-foreground: 217 91% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 50%;
+
+    --radius: 0.75rem;
+
+    --chart-1: 217 91% 50%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 0 84% 60%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 91% 95%;
+    --sidebar-accent-foreground: 217 91% 40%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 217 91% 50%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 76% 30%;
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 40%;
+    --warning-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }2. Utils (lib/utils.ts):
+
+
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+3. Button (components/ui/button.tsx):
+
+
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
       },
-      bodyStyles: {
-        fontSize: 11,
-        cellPadding: 8,
-        textColor: darkText,
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        icon: "h-9 w-9",
       },
-      alternateRowStyles: {
-        fillColor: [248, 249, 250],
-      },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 80 },
-        1: { halign: 'right', cellWidth: 80 },
-      },
-      margin: { left: 14, right: 14 },
-      tableWidth: 'auto',
-    });
-    
-    // Footer
-    const footerY = doc.internal.pageSize.getHeight() - 15;
-    doc.setFontSize(9);
-    doc.setTextColor(...grayText);
-    doc.text("Page 1", pageWidth / 2, footerY, { align: 'center' });
-    
-    // ===== PAGE 2: CHART DATA =====
-    if (chartData.length > 0) {
-      doc.addPage();
-      
-      // Header bar
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.setFont("helvetica", "bold");
-      doc.text("Revenue Trends", 14, 26);
-      
-      // Section content
-      doc.setTextColor(...darkText);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Daily Revenue Data", 14, 58);
-      
-      doc.setDrawColor(...primaryColor);
-      doc.setLineWidth(0.5);
-      doc.line(14, 62, pageWidth - 14, 62);
-      
-      // Get chart headers dynamically
-      const chartHeaders = Object.keys(chartData[0]);
-      const formattedHeaders = chartHeaders.map(h => 
-        h.charAt(0).toUpperCase() + h.slice(1).replace(/([A-Z])/g, ' $1')
-      );
-      
-      autoTable(doc, {
-        startY: 70,
-        head: [formattedHeaders],
-        body: chartData.map((data) => 
-          chartHeaders.map(key => {
-            const value = data[key];
-            // Format dates
-            if (key.toLowerCase().includes('date')) {
-              return formatDate(value);
-            }
-            // Format currency values
-            if (typeof value === 'number' && key.toLowerCase().includes('revenue')) {
-              return formatCurrency(value);
-            }
-            return value?.toString() || 'N/A';
-          })
-        ),
-        theme: 'grid',
-        headStyles: {
-          fillColor: primaryColor,
-          textColor: [255, 255, 255],
-          fontSize: 10,
-          fontStyle: 'bold',
-          halign: 'center',
-          cellPadding: 6,
-        },
-        bodyStyles: {
-          fontSize: 10,
-          cellPadding: 6,
-          textColor: darkText,
-          halign: 'center',
-        },
-        alternateRowStyles: {
-          fillColor: [248, 249, 250],
-        },
-        margin: { left: 14, right: 14 },
-      });
-      
-      // Footer
-      doc.setFontSize(9);
-      doc.setTextColor(...grayText);
-      doc.text("Page 2", pageWidth / 2, footerY, { align: 'center' });
-    }
-    
-    // ===== PAGE 3: ORDER DETAILS =====
-    if (orders.length > 0) {
-      doc.addPage();
-      
-      // Header bar
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.setFont("helvetica", "bold");
-      doc.text("Order Details", 14, 26);
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Total: ${orders.length} orders`, pageWidth - 14, 26, { align: 'right' });
-      
-      // Section content
-      doc.setTextColor(...darkText);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("All Transactions", 14, 58);
-      
-      doc.setDrawColor(...primaryColor);
-      doc.setLineWidth(0.5);
-      doc.line(14, 62, pageWidth - 14, 62);
-      
-      autoTable(doc, {
-        startY: 70,
-        head: [["Order ID", "Customer", "Amount", "Status", "Date"]],
-        body: orders.map((order) => [
-          order.id?.toString() || 'N/A',
-          order.customerName || order.customer_name || order.customer || 'N/A',
-          typeof order.amount === 'number' ? formatCurrency(order.amount) : (order.amount || 'N/A'),
-          order.status || 'N/A',
-          formatDate(order.createdAt || order.created_at || order.date),
-        ]),
-        theme: 'grid',
-        headStyles: {
-          fillColor: primaryColor,
-          textColor: [255, 255, 255],
-          fontSize: 10,
-          fontStyle: 'bold',
-          halign: 'center',
-          cellPadding: 6,
-        },
-        bodyStyles: {
-          fontSize: 9,
-          cellPadding: 5,
-          textColor: darkText,
-        },
-        alternateRowStyles: {
-          fillColor: [248, 249, 250],
-        },
-        columnStyles: {
-          0: { halign: 'center', cellWidth: 30 },
-          1: { halign: 'left', cellWidth: 50 },
-          2: { halign: 'right', cellWidth: 35 },
-          3: { halign: 'center', cellWidth: 30 },
-          4: { halign: 'center', cellWidth: 35 },
-        },
-        margin: { left: 14, right: 14 },
-        didDrawPage: function (data) {
-          // Footer on each page
-          doc.setFontSize(9);
-          doc.setTextColor(...grayText);
-          const pageNumber = doc.getCurrentPageInfo().pageNumber;
-          doc.text(`Page ${pageNumber}`, pageWidth / 2, footerY, { align: 'center' });
-        },
-      });
-    }
+    },
+    defaultVariants: { variant: "default", size: "default" },
+  }
+);
 
-    doc.save("sales_report.pdf");
-  };
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
 
-  const handleExportExcel = () => {
-    const workbook = XLSX.utils.book_new();
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button";
+    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+  }
+);
+Button.displayName = "Button";
 
-    // Add Metrics Sheet with better formatting
-    const metricsData = [
-      ["Sales Report - Summary Metrics"],
-      [""],
-      ["Metric", "Value"],
-      ["Total Gross Sales", formatCurrency(metrics.totalGross)],
-      ["Total Orders", metrics.totalOrders],
-      ["Average Order Value", formatCurrency(metrics.avgOrderValueWithoutShipping)],
-      ["Total Net Sales", formatCurrency(metrics.totalNet)],
-      [""],
-      ["Report Generated", formatDate(new Date())],
-    ];
-    const metricsSheet = XLSX.utils.aoa_to_sheet(metricsData);
-    metricsSheet['!cols'] = [{ wch: 25 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(workbook, metricsSheet, "Summary");
+export { Button, buttonVariants };
+4. Popover (components/ui/popover.tsx):
 
-    // Add Chart Data Sheet
-    if (chartData.length > 0) {
-      const chartHeaders = Object.keys(chartData[0]);
-      const formattedHeaders = chartHeaders.map(h => 
-        h.charAt(0).toUpperCase() + h.slice(1).replace(/([A-Z])/g, ' $1')
-      );
-      const chartRows = chartData.map((data) => 
-        chartHeaders.map(key => {
-          const value = data[key];
-          if (key.toLowerCase().includes('date')) {
-            return formatDate(value);
-          }
-          if (typeof value === 'number' && key.toLowerCase().includes('revenue')) {
-            return formatCurrency(value);
-          }
-          return value;
-        })
-      );
-      const chartSheet = XLSX.utils.aoa_to_sheet([["Revenue Trends"], [""], formattedHeaders, ...chartRows]);
-      chartSheet['!cols'] = formattedHeaders.map(() => ({ wch: 18 }));
-      XLSX.utils.book_append_sheet(workbook, chartSheet, "Revenue Data");
-    }
 
-    // Add Orders Sheet
-    if (orders.length > 0) {
-      const orderHeaders = ["Order ID", "Customer", "Amount", "Status", "Date"];
-      const orderRows = orders.map((order) => [
-        order.id?.toString() || 'N/A',
-        order.customerName || order.customer_name || order.customer || 'N/A',
-        typeof order.amount === 'number' ? formatCurrency(order.amount) : (order.amount || 'N/A'),
-        order.status || 'N/A',
-        formatDate(order.createdAt || order.created_at || order.date),
-      ]);
-      const orderSheet = XLSX.utils.aoa_to_sheet([["Order Details"], [""], orderHeaders, ...orderRows]);
-      orderSheet['!cols'] = [{ wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 15 }];
-      XLSX.utils.book_append_sheet(workbook, orderSheet, "Orders");
-    }
+import * as React from "react";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { cn } from "@/lib/utils";
 
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const data = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-    saveAs(data, "sales_report.xlsx");
-  };
+const Popover = PopoverPrimitive.Root;
+const PopoverTrigger = PopoverPrimitive.Trigger;
 
+const PopoverContent = React.forwardRef<
+  React.ElementRef<typeof PopoverPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+>(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+  <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Content
+      ref={ref}
+      align={align}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
+        className
+      )}
+      {...props}
+    />
+  </PopoverPrimitive.Portal>
+));
+PopoverContent.displayName = PopoverPrimitive.Content.displayName;
+
+export { Popover, PopoverTrigger, PopoverContent };
+5. Calendar (components/ui/calendar.tsx):
+
+
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+
+function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
   return (
-    <div className="flex gap-2">
-      <Button variant="outline" onClick={handleExportPdf}>
-        <Download className="mr-2 h-4 w-4" />
-        Export PDF
-      </Button>
-      <Button variant="outline" onClick={handleExportExcel}>
-        <Download className="mr-2 h-4 w-4" />
-        Export Excel
-      </Button>
-    </div>
+    <DayPicker
+      showOutsideDays={showOutsideDays}
+      className={cn("p-3 pointer-events-auto", className)}
+      classNames={{
+        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        month: "space-y-4",
+        caption: "flex justify-center pt-1 relative items-center",
+        caption_label: "text-sm font-medium",
+        nav: "space-x-1 flex items-center",
+        nav_button: cn(buttonVariants({ variant: "outline" }), "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"),
+        nav_button_previous: "absolute left-1",
+        nav_button_next: "absolute right-1",
+        table: "w-full border-collapse space-y-1",
+        head_row: "flex",
+        head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+        row: "flex w-full mt-2",
+        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100"),
+        day_range_end: "day-range-end",
+        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+        day_today: "bg-accent text-accent-foreground",
+        day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        day_disabled: "text-muted-foreground opacity-50",
+        day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+        day_hidden: "invisible",
+        ...classNames,
+      }}
+      components={{
+        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+        IconRight: () => <ChevronRight className="h-4 w-4" />,
+      }}
+      {...props}
+    />
   );
 }
+Calendar.displayName = "Calendar";
+
+export { Calendar };
+6. DateRangePicker:
+
+
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+
+interface DateRangePickerProps {
+  dateRange: DateRange | undefined;
+  onDateRangeChange: (range: DateRange | undefined) => void;
+}
+
+export const DateRangePicker = ({ dateRange, onDateRangeChange }: DateRangePickerProps) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className={cn("w-[260px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {dateRange?.from ? (
+            dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")
+          ) : <span>Pick a date range</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={onDateRangeChange} numberOfMonths={2} initialFocus />
+      </PopoverContent>
+    </Popover>
+  );
+};
+}
+
+
+CRITICAL: Make sure Tailwind is properly configured with all the classes working (w-9, flex, etc.). The broken layout in image 1 indicates Tailwind classes aren't being applied.

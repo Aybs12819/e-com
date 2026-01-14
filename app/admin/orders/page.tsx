@@ -40,24 +40,9 @@ const OrdersPage = async () => {
   const { data } = await supabase
     .from("orders")
     .select(
+      `*,
+      customer_accounts(*)
       `
-      id,
-      customer_id,
-      total_amount,
-      status,
-      shipping_address,
-      created_at,
-      updated_at,
-      shipping_fee,
-      rider_id,
-      customer_accounts(
-        first_name,
-        middle_name,
-        last_name,
-        email,
-        phone
-      )
-    `
     )
     .returns<OrderData[]>();
 

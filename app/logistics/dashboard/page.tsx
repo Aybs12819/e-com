@@ -20,19 +20,24 @@ export default async function LogisticsDashboard() {
   // Fetch confirmed orders that need delivery assignment
   const { data: pendingOrders } = await supabase
     .from("orders")
-    .select("*, customer_accounts(first_name, middle_name, last_name, address)")
-    .eq("status", "confirmed order");
+    .select(
+      "*, customer_accounts(first_name, middle_name, last_name, phone, address)"
+    )
+    .in("status", ["confirmed order"])
+    .is("rider_id", null);
 
   // Fetch custom products that need delivery assignment
   const { data: pendingCustomProducts } = await supabase
     .from("custom_products")
-    .select("*, customer_accounts(first_name, middle_name, last_name, address)")
-    .eq("status", "Confirmed Order");
+    .select(
+      "*, customer_accounts(first_name, middle_name, last_name, phone, address)"
+    )
+    .eq("status", "confirmed order");
 
   // Fetch active riders
   const { data: ridersData, error: ridersError } = await supabase
     .from("profiles")
-    .select("id, full_name, role");
+    .select("id, full_name, role, address");
   if (ridersError) {
     console.error("Error fetching riders:", ridersError);
   }
@@ -47,7 +52,7 @@ export default async function LogisticsDashboard() {
   const { count: deliveredTodayCount } = await supabase
     .from("orders")
     .select("id", { count: "exact" })
-    .eq("status", "delivered")
+    .eq("status", "completed")
     .gte("delivered_at", today.toISOString())
     .lt("delivered_at", tomorrow.toISOString());
 

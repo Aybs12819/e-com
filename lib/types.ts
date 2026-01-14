@@ -13,14 +13,18 @@ export interface Product {
   image_urls: string[];
   created_at: string;
   is_active: string;
+  preorder_lead_time?: string; // Added preorder_lead_time
   categories: { name: string } | null;
   variantCombinations: VariantCombination[];
+  average_rating?: number;
+  review_count?: number;
 }
 
 export interface Rider {
   id: string;
   full_name: string;
   role: string;
+  address: string;
 }
 
 export type GroupedProductVariant = {

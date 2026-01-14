@@ -4,6 +4,8 @@ import Link from "next/link"
 import { LogoutButton } from "@/components/logout-button"
 import { supabase } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
+import { Receipt } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface AuthButtonsProps {
   // user: any; // No longer needed as user is fetched client-side
@@ -26,10 +28,12 @@ export function AuthButtons({}: AuthButtonsProps) {
       {user ? (
         <>
           <Link 
-            href="/customer/dashboard" 
+            href="/orders" 
             className="font-bold hover:underline"
           >
-            Dashboard
+            <Button variant="ghost" size="icon">
+              <Receipt className="h-5 w-5" />
+            </Button>
           </Link>
           <LogoutButton />
         </>

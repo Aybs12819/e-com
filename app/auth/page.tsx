@@ -39,6 +39,8 @@ export default function AuthPage() {
       const { error } = await supabaseClient.auth.signInWithOtp({
         email,
         options: {
+          shouldCreateUser: true,
+          emailRedirectTo: undefined,
           data: { role: 'customer' },
         },
       });
@@ -109,32 +111,18 @@ export default function AuthPage() {
     setLoading(true);
 
     const { error } = await supabaseClient.auth.updateUser({
-      password: password,
       data: { first_name: firstName, middle_name: middleName, last_name: lastName, birthdate: birthdate, address: address, role: 'customer' },
     });
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      // Automatically sign in the user after profile completion
-      let signInOptions: { email: string; password: string } | { phone: string; password: string };
-
-      if (registrationMethod === 'email') {
-        signInOptions = { email: email, password: password };
+      toast({ title: "Success", description: "Account created successfully! Redirecting to dashboard." });
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        handleSuccessfulLogin(user); // Redirect to appropriate dashboard
       } else {
-        signInOptions = { phone: phoneNumber, password: password };
-      }
-
-      const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword(signInOptions);
-
-      if (signInError) {
-        toast({ title: "Error", description: signInError.message, variant: "destructive" });
-      } else if (signInData.user) {
-        toast({ title: "Success", description: "Account created successfully! Redirecting to dashboard." });
-        handleSuccessfulLogin(signInData.user); // Redirect to appropriate dashboard
-      } else {
-        toast({ title: "Success", description: "Account created successfully! Please log in." });
-        router.push("/auth"); // Fallback to login if auto-signin fails
+        router.push("/auth"); // Fallback to login if user not found
       }
     }
     setLoading(false);
@@ -226,6 +214,7 @@ const [password, setPassword] = useState('');
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Loading..." : "Login"}
@@ -283,14 +272,13 @@ const [password, setPassword] = useState('');
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="middleName">Middle Name <span className="text-red-500">*</span></label>
+                        <label htmlFor="middleName">Middle Name</label>
                         <Input
                           id="middleName"
                           type="text"
                           placeholder="Middle Name"
                           value={middleName}
                           onChange={(e) => setMiddleName(e.target.value)}
-                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -327,9 +315,8 @@ const [password, setPassword] = useState('');
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="password">Password <span className="text-red-500">*</span></label>
+                        <label htmlFor="password">Password</label>
                         <Input
-                          id="password"
                           type="password"
                           placeholder="Password"
                           value={password}
@@ -395,7 +382,7 @@ const [password, setPassword] = useState('');
                         <div className="space-y-2">
                           <Input
                             type="text"
-                            placeholder="Middle Name (Optional)"
+                            placeholder="Middle Name"
                             value={middleName}
                             onChange={(e) => setMiddleName(e.target.value)}
                           />

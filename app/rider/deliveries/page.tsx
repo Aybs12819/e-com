@@ -26,13 +26,19 @@ export default async function RiderDashboard() {
     );
   }
 
-  const { data: activeDeliveries } = await supabase
+  const { data: activeDeliveries, error: activeDeliveriesError } = await supabase
     .from("deliveries")
     .select(
-      `*, orders(id, total_amount, shipping_address, customer_accounts(first_name, middle_name, last_name, phone)), custom_products(id, name, base_price, description, images, customer_accounts(first_name, middle_name, last_name, phone, address))`
+      `*, orders(id, customer_id, total_amount, shipping_address, customer_accounts(first_name, middle_name, last_name, phone)), custom_products(id, name, base_price, description, images, customer_accounts(first_name, middle_name, last_name, phone, address))`
     )
     .eq("rider_id", user.id)
     .eq("status", "assigned");
+
+  if (activeDeliveriesError) {
+    console.error("Error fetching active deliveries:", activeDeliveriesError);
+  }
+
+  console.log("Active Deliveries:", activeDeliveries);
 
   const { data: completedDeliveries } = await supabase
     .from("deliveries")

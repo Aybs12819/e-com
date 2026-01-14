@@ -50,7 +50,9 @@ export async function fetchSalesData(dateRange: DateRange | undefined): Promise<
     query = query.gte('created_at', dateRange.from.toISOString());
   }
   if (dateRange?.to) {
-    query = query.lte('created_at', dateRange.to.toISOString());
+    const nextDay = new Date(dateRange.to);
+    nextDay.setDate(nextDay.getDate() + 1);
+    query = query.lte('created_at', nextDay.toISOString());
   }
 
   const { data, error } = await query.order('created_at', { ascending: true });
@@ -72,7 +74,9 @@ export async function fetchSalesChartData(dateRange: DateRange | undefined) {
     query = query.gte('created_at', dateRange.from.toISOString().split('T')[0]);
   }
   if (dateRange?.to) {
-    query = query.lte('created_at', dateRange.to.toISOString().split('T')[0]);
+    const nextDay = new Date(dateRange.to);
+    nextDay.setDate(nextDay.getDate() + 1);
+    query = query.lte('created_at', nextDay.toISOString());
   }
 
   const { data, error } = await query.order('created_at', { ascending: true });

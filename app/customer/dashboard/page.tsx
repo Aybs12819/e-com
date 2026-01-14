@@ -18,11 +18,24 @@ export default async function Home() {
   const productsWithSoldCount = await Promise.all(
     productsData.map(async (product) => {
       const { data: soldCount, error: soldCountError } = await supabase.rpc('get_product_sold_count', { p_product_id: product.id });
+      const { data: averageRatingData, error: averageRatingError } = await supabase.rpc('get_product_average_rating', { p_product_id: product.id });
+
+      const average_rating = Number(averageRatingData?.[0]?.average_rating || 0);
+      const review_count = Number(averageRatingData?.[0]?.review_count || 0);
+
       if (soldCountError) {
         console.error(`Error fetching sold count for product ${product.id}:`, soldCountError);
-        return { ...product, sold_count: 0 }; // Default to 0 if there's an error
       }
-      return { ...product, sold_count: soldCount };
+      if (averageRatingError) {
+        console.error(`Error fetching average rating for product ${product.id}:`, averageRatingError);
+      }
+
+      return {
+        ...product,
+        sold_count: Number(soldCount || 0),
+        average_rating: average_rating,
+        review_count: review_count,
+      };
     })
   );
   return (
@@ -52,9 +65,10 @@ export default async function Home() {
               </div>
               <div className="p-2">
                 <h3 className="line-clamp-2 text-xs text-gray-700">{product.name}</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-primary">₱{product.base_price?.toFixed(2)}</span>
-                  <span className="text-[10px] text-gray-400">{product.sold_count || 0} Sold</span>
+                <span className="text-sm font-bold text-primary">₱{product.base_price?.toFixed(2)}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-400">★</span>
+                  <span className="text-[10px] text-gray-400">{product.average_rating?.toFixed(1) || '0.0'} ({product.review_count || 0} Reviews) | {product.sold_count || 0} Sold</span>
                 </div>
               </div>
             </Link>

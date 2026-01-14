@@ -16,12 +16,14 @@ import { supabase } from "@/lib/supabase/client";
 interface ReviewModalProps {
   orderId: string;
   customerId: string;
+  productId: string; // Add productId to props
   onReviewSubmitted?: () => void;
 }
 
 export function ReviewModal({
   orderId,
   customerId,
+  productId, // Destructure productId
   onReviewSubmitted,
 }: ReviewModalProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +40,7 @@ export function ReviewModal({
       const { error } = await supabase.from("reviews").insert({
         order_id: orderId,
         customer_id: customerId,
+        product_id: productId, // Include productId here
         rating,
         feedback: feedback.trim() || null,
       });

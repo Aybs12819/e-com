@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { AssignRiderButton } from "@/components/logistics/AssignRiderButton";
+
 import { Plus, Edit, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { uploadProductImage } from "@/utils/supabase/storage";
@@ -675,13 +675,7 @@ export default function AdminCustomProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="flex gap-2">
-                    {product.status === "Confirmed Order" && (
-                      <AssignRiderButton
-                        orderId={product.id}
-                        riders={riders}
-                        isCustomProduct={true}
-                      />
-                    )}
+
                     <Dialog
                       open={
                         showEditForm && currentProductToEdit?.id === product.id

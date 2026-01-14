@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { getShippingFee, shippingFees } from "@/lib/shipping"
 import { toast } from "@/hooks/use-toast"; // Explicitly import toast
+import Script from "next/script";
 
 interface Product {
   id: string;
@@ -370,7 +371,8 @@ export default function CartPage() {
             </div>
           </div>
         </div>
-      </main>
+        <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
+     </main>
     </div>
   )
 }
