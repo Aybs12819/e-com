@@ -7,7 +7,7 @@ A modern e-commerce platform built with Next.js, TypeScript, and Tailwind CSS.
 
 ## 🚀 Live Demo
 
-**[https://v0-e-commerce-platform-link-habi.vercel.app](https://v0-e-commerce-platform-link-habi.vercel.app)**
+**[https://e-com-86a6.vercel.app](https://e-com-86a6.vercel.app)**
 
 ## 📋 Features
 
