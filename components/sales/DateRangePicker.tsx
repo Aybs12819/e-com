@@ -3,6 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { enUS } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 
@@ -19,13 +20,13 @@ export const DateRangePicker = ({ dateRange, onDateRangeChange }: DateRangePicke
           <CalendarIcon className="mr-2 h-4 w-4" />
           {dateRange?.from ? (
             dateRange.to ? (
-              <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>
-            ) : format(dateRange.from, "LLL dd, y")
+              <>{format(dateRange.from, "LLL dd, y", { locale: enUS })} - {format(dateRange.to, "LLL dd, y", { locale: enUS })}</>
+            ) : format(dateRange.from, "LLL dd, y", { locale: enUS })
           ) : <span>Pick a date range</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={onDateRangeChange} numberOfMonths={2} initialFocus />
+        <Calendar mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={onDateRangeChange} numberOfMonths={1} initialFocus />
       </PopoverContent>
     </Popover>
   );
