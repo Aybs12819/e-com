@@ -4,6 +4,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useEffect, useState, useRef } from "react"
+import { supabase } from "@/lib/supabase/client"
+import PWAProvider from "@/components/pwa-provider"
+import { Heart, Users, Sparkles, ArrowRight } from "lucide-react"
+import { User } from '@supabase/supabase-js'
+
 // ... existing code ...
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -19,25 +24,29 @@ export default function LandingPage() {
     }
     checkAuth()
 
-    // Load saved video time
-    if (videoRef.current) {
+    // Load saved video time (client-side only)
+    if (typeof window !== 'undefined' && videoRef.current) {
       const savedTime = localStorage.getItem('sitio_mapita_video_time');
       if (savedTime) {
         videoRef.current.currentTime = parseFloat(savedTime);
       }
     }
 
-    // Save video time before unload
+    // Save video time before unload (client-side only)
     const handleBeforeUnload = () => {
-      if (videoRef.current) {
+      if (typeof window !== 'undefined' && videoRef.current) {
         localStorage.setItem('sitio_mapita_video_time', videoRef.current.currentTime.toString());
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      }
     };
   }, [])
 
@@ -330,7 +339,3 @@ export default function LandingPage() {
     </PWAProvider>
   )
 }
-import { supabase } from "@/lib/supabase/client"
-import PWAProvider from "@/components/pwa-provider"
-import { Heart, Users, Sparkles, ArrowRight } from "lucide-react"
-import { User } from '@supabase/supabase-js'
