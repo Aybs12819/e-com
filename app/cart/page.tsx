@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2, Minus, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react"
 import { getShippingFee, shippingFees } from "@/lib/shipping"
 import { toast } from "@/hooks/use-toast"; // Explicitly import toast
 import Script from "next/script";
@@ -29,7 +29,7 @@ interface CartItem {
   products: Product;
 }
 
-export default function CartPage() {
+function CartPageContent() {
   const supabaseClient = supabase;
   const router = useRouter();
   const [session, setSession] = useState<any>(null);
@@ -471,5 +471,13 @@ export default function CartPage() {
       </div>
     </footer>
     </div>
+  )
+}
+
+export default function CartPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading cart...</div>}>
+      <CartPageContent />
+    </Suspense>
   )
 }
