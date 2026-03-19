@@ -200,7 +200,7 @@ export default function LandingPage() {
                   playsInline
                   muted={isMuted}
                   autoPlay
-                  className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer"
+                  className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer border-2 border-white/20"
                   controls={false}
                   preload="metadata"
                   onClick={handleVideoClick}
