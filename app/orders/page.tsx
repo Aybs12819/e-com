@@ -4,7 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldAlert } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { createBrowserClient } from "@supabase/ssr";
 import { Product } from "@/lib/types";
@@ -62,7 +62,7 @@ interface CustomProduct {
   updated_at: string;
 }
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const [session, setSession] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customProducts, setCustomProducts] = useState<CustomProduct[]>([]);
@@ -427,5 +427,13 @@ export default function OrdersPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading orders...</div>}>
+      <OrdersPageContent />
+    </Suspense>
   );
 }
