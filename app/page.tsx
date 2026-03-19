@@ -54,11 +54,13 @@ export default function LandingPage() {
 
     const handleVideoLoad = () => {
       console.log("Video element ready");
-      // Try to play the video
-      video.play().catch(err => {
-        console.log("Autoplay blocked:", err);
-        // Video will play on user interaction
-      });
+      // Only try to autoplay if video is paused and not already playing
+      if (video.paused && video.readyState >= 3) { // HAVE_FUTURE_DATA
+        video.play().catch(err => {
+          console.log("Autoplay blocked:", err);
+          // Video will play on user interaction - this is expected behavior
+        });
+      }
     };
 
     // Load saved video time
@@ -75,20 +77,31 @@ export default function LandingPage() {
     };
   }, [])
 
-  const handleVideoClick = () => {
+  const handleVideoClick = async () => {
     if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play().catch(error => {
-          console.log("Video play error:", error);
-          if (error.name === 'NotSupportedError') {
-            console.log("Video source not supported, checking file...");
-          }
-        });
-      } else {
-        videoRef.current.pause();
+      const video = videoRef.current;
+      
+      try {
+        if (video.paused) {
+          // Only toggle mute when starting to play
+          video.muted = false;
+          setIsMuted(false);
+          await video.play();
+        } else {
+          video.pause();
+          // Mute when pausing to allow autoplay later
+          video.muted = true;
+          setIsMuted(true);
+        }
+      } catch (error) {
+        console.log("Video play error:", error);
+        // Handle AbortError specifically - this happens when play is interrupted
+        if (error.name === 'AbortError') {
+          console.log("Play request was interrupted, video state:", !video.paused ? 'playing' : 'paused');
+        } else if (error.name === 'NotSupportedError') {
+          console.log("Video source not supported, checking file...");
+        }
       }
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
     }
   };
 
@@ -209,14 +222,6 @@ export default function LandingPage() {
                     const video = e.currentTarget;
                     console.log("Error code:", video.error?.code);
                     console.log("Error message:", video.error?.message);
-                  }}
-                  onLoadedData={() => {
-                    console.log("Video loaded successfully");
-                    if (videoRef.current && videoRef.current.paused) {
-                      videoRef.current.play().catch(err => {
-                        console.log("Autoplay blocked, user interaction required");
-                      });
-                    }
                   }}
                 >
                   <source src="/sitio_mapita.mp4" type="video/mp4" />
