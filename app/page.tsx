@@ -57,6 +57,13 @@ export default function LandingPage() {
 
   const handleVideoClick = () => {
     if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(error => {
+          console.log("Video play error:", error);
+        });
+      } else {
+        videoRef.current.pause();
+      }
       videoRef.current.muted = !videoRef.current.muted;
       setIsMuted(videoRef.current.muted);
     }
@@ -167,12 +174,12 @@ export default function LandingPage() {
                 <video
                   ref={videoRef}
                   src="/sitio_mapita.mp4"
-                  autoPlay
                   loop
                   playsInline
                   muted={isMuted}
                   onClick={handleVideoClick}
-                  className="w-full h-full object-cover rounded-2xl shadow-2xl"
+                  className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer"
+                  controls
                 />
               </div>
             </div>
