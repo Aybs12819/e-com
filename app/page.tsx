@@ -130,11 +130,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="hidden md:block relative h-96">
-                <img
-                  src="/community_artisans.png"
-                  alt="Community artisans weaving"
-                  className="w-full h-full object-cover rounded-2xl shadow-2xl"
-                />
+                {/* Video removed - space available for future content */}
             </div>
           </div>
         </div>
