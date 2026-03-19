@@ -194,6 +194,7 @@ export default function LandingPage() {
                 </video>
             </div>
           </div>
+        </div>
         </section>
 
         {/* Story Section */}
