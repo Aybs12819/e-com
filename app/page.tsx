@@ -5,7 +5,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import PWAProvider from "@/components/pwa-provider"
 import { Heart, Users, Sparkles, ArrowRight } from "lucide-react"
@@ -14,8 +14,6 @@ import { User } from '@supabase/supabase-js'
 // ... existing code ...
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMuted, setIsMuted] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
@@ -28,75 +26,7 @@ export default function LandingPage() {
       setUser(user)
     }
     checkAuth()
-
-    // Save video time before unload (client-side only)
-    const handleBeforeUnload = () => {
-      if (typeof window !== 'undefined' && videoRef.current) {
-        localStorage.setItem('sitio_mapita_video_time', videoRef.current.currentTime.toString());
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-      }
-    };
   }, [])
-
-  // Video initialization effect
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleVideoLoad = () => {
-      console.log("Video element ready - waiting for user interaction");
-    };
-
-    // Load saved video time
-    const savedTime = localStorage.getItem('sitio_mapita_video_time');
-    if (savedTime) {
-      video.currentTime = parseFloat(savedTime);
-    }
-
-    // Set up event listeners
-    video.addEventListener('loadeddata', handleVideoLoad);
-    
-    return () => {
-      video.removeEventListener('loadeddata', handleVideoLoad);
-    };
-  }, [])
-
-  const handleVideoClick = async () => {
-    if (videoRef.current) {
-      const video = videoRef.current;
-      
-      try {
-        if (video.paused) {
-          // Only toggle mute when starting to play
-          video.muted = false;
-          setIsMuted(false);
-          await video.play();
-        } else {
-          video.pause();
-          // Mute when pausing to allow autoplay later
-          video.muted = true;
-          setIsMuted(true);
-        }
-      } catch (error: unknown) {
-        console.log("Video play error:", error);
-        // Handle AbortError specifically - this happens when play is interrupted
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.log("Play request was interrupted, video state:", !video.paused ? 'playing' : 'paused');
-        } else if (error instanceof Error && error.name === 'NotSupportedError') {
-          console.log("Video source not supported, checking file...");
-        }
-      }
-    }
-  };
 
   const handleExploreProducts = async () => {
     setIsLoading(true);
@@ -200,27 +130,11 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="hidden md:block relative h-96">
-                <video
-                  ref={videoRef}
-                  loop
-                  playsInline
-                  muted={true}
-                  className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer border-2 border-white/20"
-                  controls={false}
-                  preload="metadata"
-                  onClick={handleVideoClick}
-                  onError={(e) => {
-                    console.log("VIDEO ERROR:", e);
-                    const video = e.currentTarget;
-                    console.log("Error code:", video.error?.code);
-                    console.log("Error message:", video.error?.message);
-                  }}
-                >
-                  <source src="/sitio_mapita.mp4" type="video/mp4" />
-                </video>
-                <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-lg">
-                    <span className="text-sm">🔇 Click to play & unmute</span>
-                  </div>
+                <img
+                  src="/community_artisans.png"
+                  alt="Community artisans weaving"
+                  className="w-full h-full object-cover rounded-2xl shadow-2xl"
+                />
             </div>
           </div>
         </div>
