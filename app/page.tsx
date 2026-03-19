@@ -53,14 +53,7 @@ export default function LandingPage() {
     if (!video) return;
 
     const handleVideoLoad = () => {
-      console.log("Video element ready");
-      // Only try to autoplay if video is paused and not already playing
-      if (video.paused && video.readyState >= 3) { // HAVE_FUTURE_DATA
-        video.play().catch(err => {
-          console.log("Autoplay blocked:", err);
-          // Video will play on user interaction - this is expected behavior
-        });
-      }
+      console.log("Video element ready - waiting for user interaction");
     };
 
     // Load saved video time
@@ -168,7 +161,7 @@ export default function LandingPage() {
         </header>
 
         {/* Hero Section */}
-        <section className="relative py-20 md:py-32 px-4 md:px-6 text-white overflow-hidden bg-[url('/weaving_pattern.svg')] bg-repeat">
+        <section className="relative py-20 md:py-32 px-4 md:px-6 text-white overflow-hidden">
           <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/community.png)' }}></div>
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/20 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-background/20 to-background/50"></div>
@@ -211,8 +204,7 @@ export default function LandingPage() {
                   ref={videoRef}
                   loop
                   playsInline
-                  muted={isMuted}
-                  autoPlay
+                  muted={true}
                   className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer border-2 border-white/20"
                   controls={false}
                   preload="metadata"
@@ -226,11 +218,9 @@ export default function LandingPage() {
                 >
                   <source src="/sitio_mapita.mp4" type="video/mp4" />
                 </video>
-                {isMuted && (
-                  <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-lg">
-                    <span className="text-sm">🔇 Click to unmute</span>
+                <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-lg">
+                    <span className="text-sm">🔇 Click to play & unmute</span>
                   </div>
-                )}
             </div>
           </div>
         </div>
