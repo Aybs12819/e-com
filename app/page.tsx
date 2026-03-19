@@ -29,14 +29,6 @@ export default function LandingPage() {
     }
     checkAuth()
 
-    // Load saved video time (client-side only)
-    if (typeof window !== 'undefined' && videoRef.current) {
-      const savedTime = localStorage.getItem('sitio_mapita_video_time');
-      if (savedTime) {
-        videoRef.current.currentTime = parseFloat(savedTime);
-      }
-    }
-
     // Save video time before unload (client-side only)
     const handleBeforeUnload = () => {
       if (typeof window !== 'undefined' && videoRef.current) {
@@ -52,6 +44,34 @@ export default function LandingPage() {
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', handleBeforeUnload);
       }
+    };
+  }, [])
+
+  // Video initialization effect
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleVideoLoad = () => {
+      console.log("Video element ready");
+      // Try to play the video
+      video.play().catch(err => {
+        console.log("Autoplay blocked:", err);
+        // Video will play on user interaction
+      });
+    };
+
+    // Load saved video time
+    const savedTime = localStorage.getItem('sitio_mapita_video_time');
+    if (savedTime) {
+      video.currentTime = parseFloat(savedTime);
+    }
+
+    // Set up event listeners
+    video.addEventListener('loadeddata', handleVideoLoad);
+    
+    return () => {
+      video.removeEventListener('loadeddata', handleVideoLoad);
     };
   }, [])
 
@@ -178,20 +198,34 @@ export default function LandingPage() {
                   ref={videoRef}
                   loop
                   playsInline
-                  muted
+                  muted={isMuted}
                   autoPlay
                   className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer"
-                  controls
+                  controls={false}
                   preload="metadata"
+                  onClick={handleVideoClick}
                   onError={(e) => {
                     console.log("VIDEO ERROR:", e);
                     const video = e.currentTarget;
                     console.log("Error code:", video.error?.code);
                     console.log("Error message:", video.error?.message);
                   }}
+                  onLoadedData={() => {
+                    console.log("Video loaded successfully");
+                    if (videoRef.current && videoRef.current.paused) {
+                      videoRef.current.play().catch(err => {
+                        console.log("Autoplay blocked, user interaction required");
+                      });
+                    }
+                  }}
                 >
                   <source src="/sitio_mapita.mp4" type="video/mp4" />
                 </video>
+                {isMuted && (
+                  <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-lg">
+                    <span className="text-sm">🔇 Click to unmute</span>
+                  </div>
+                )}
             </div>
           </div>
         </div>
