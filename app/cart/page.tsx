@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { getShippingFee, shippingFees } from "@/lib/shipping"
 import { toast } from "@/hooks/use-toast"; // Explicitly import toast
 import Script from "next/script";
+import Image from "next/image";
 
 interface Product {
   id: string;
@@ -57,26 +58,121 @@ export default function CartPage() {
 
   useEffect(() => {
     if (userAddress) {
-      console.log("User Address:", userAddress); // Add this line
+      console.log("User Address:", userAddress);
       setShowCalculatingShipping(true);
+      
+      // Try multiple address parsing strategies
       const addressParts = userAddress.split(",").map((part) => part.trim());
-      console.log("Address Parts:", addressParts); // Add this line
+      const addressWords = userAddress.toLowerCase().split(/[\s,]+/).filter(word => word.length > 2);
+      console.log("Address Parts:", addressParts);
+      console.log("Address Words:", addressWords);
+      
       let foundMunicipality: string | undefined;
       let foundRegionKey: string | undefined;
 
-      // Iterate through all shipping regions and their municipalities
+      // Strategy 1: Exact match with address parts
       for (const regionKey in shippingFees) {
         const regionData = shippingFees[regionKey];
         for (const municipalityName in regionData.municipalities) {
           // Check if any part of the user's address includes the municipality name
-          if (addressParts.some(part => part.toLowerCase().includes(municipalityName.toLowerCase()))) {
+          if (addressParts.some(part => part.toLowerCase() === municipalityName.toLowerCase()) ||
+              addressParts.some(part => part.toLowerCase().includes(municipalityName.toLowerCase())) ||
+              municipalityName.toLowerCase().includes(addressParts[0]?.toLowerCase() || "")) {
             foundMunicipality = municipalityName;
             foundRegionKey = regionKey;
-            break; // Found a match, exit inner loop
+            console.log(`Found exact match: ${municipalityName} in ${regionKey}`);
+            break;
           }
         }
-        if (foundMunicipality) break; // Found a match, exit outer loop
+        if (foundMunicipality) break;
       }
+
+      // Strategy 2: Word-based matching if exact match failed
+      if (!foundMunicipality) {
+        console.log("Trying word-based matching...");
+        for (const regionKey in shippingFees) {
+          const regionData = shippingFees[regionKey];
+          for (const municipalityName in regionData.municipalities) {
+            // Check if any word in address matches municipality
+            if (addressWords.some(word => 
+                municipalityName.toLowerCase().includes(word) || 
+                word.includes(municipalityName.toLowerCase()))) {
+              foundMunicipality = municipalityName;
+              foundRegionKey = regionKey;
+              console.log(`Found word match: ${municipalityName} in ${regionKey}`);
+              break;
+            }
+          }
+          if (foundMunicipality) break;
+        }
+      }
+
+      // Strategy 3: Fuzzy matching for common variations
+      if (!foundMunicipality) {
+        console.log("Trying fuzzy matching...");
+        const municipalityMap: { [key: string]: string } = {
+          'dagupan': 'Dagupan City',
+          'san carlos': 'San Carlos City',
+          'alaminos': 'Alaminos City',
+          'lingayen': 'Lingayen',
+          'calasiao': 'Calasiao',
+          'mangaldan': 'Mangaldan',
+          'san fabian': 'San Fabian',
+          'malasiqui': 'Malasiqui',
+          'bayambang': 'Bayambang',
+          'basista': 'Basista',
+          'santa barbara': 'Santa Barbara',
+          'binalonan': 'Binalonan',
+          'pozorrubio': 'Pozorrubio',
+          'rosales': 'Rosales',
+          'villasis': 'Villasis',
+          'asingan': 'Asingan',
+          'tayug': 'Tayug',
+          'san quintin': 'San Quintin',
+          'san manuel': 'San Manuel',
+          'san nicolas': 'San Nicolas',
+          'umingan': 'Umingan',
+          'natividad': 'Natividad',
+          'laoac': 'Laoac',
+          'bolinao': 'Bolinao',
+          'anda': 'Anda',
+          'bani': 'Bani',
+          'mabini': 'Mabini',
+          'dasol': 'Dasol',
+          'infanta': 'Infanta',
+          'burgos': 'Burgos',
+          'agno': 'Agno',
+          'alcala': 'Alcala',
+          'balungao': 'Balungao',
+          'bautista': 'Bautista',
+          'mangatarem': 'Mangatarem',
+          'mapandan': 'Mapandan',
+          'manaoag': 'Manaoag',
+          'san jacinto': 'San Jacinto',
+          'santa maria': 'Santa Maria',
+          'santo tomas': 'Santo Tomas',
+          'sison': 'Sison',
+          'sual': 'Sual',
+          'urbiztondo': 'Urbiztondo'
+        };
+
+        for (const [key, value] of Object.entries(municipalityMap)) {
+          if (addressWords.some(word => key.includes(word) || word.includes(key))) {
+            foundMunicipality = value;
+            // Find the region for this municipality
+            for (const regionKey in shippingFees) {
+              if (shippingFees[regionKey].municipalities[value]) {
+                foundRegionKey = regionKey;
+                console.log(`Found fuzzy match: ${value} in ${regionKey}`);
+                break;
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      console.log("Final result:", { foundMunicipality, foundRegionKey });
 
       if (foundRegionKey && foundMunicipality) {
         const fee = getShippingFee(foundRegionKey, foundMunicipality);
@@ -123,7 +219,7 @@ export default function CartPage() {
           console.error("Error fetching cart items:", error);
         } else {
           setCartItems(cart || []);
-          setSelectedItems(cart?.map((item) => item.id) || []); // Select all items by default
+          setSelectedItems([]); // Initialize with an empty array
           const newSubtotal = cart?.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
           setSubtotal(newSubtotal);
         }
@@ -312,7 +408,7 @@ export default function CartPage() {
                     <h3 className="text-sm font-medium line-clamp-2">
                       {item.products?.name}
                     </h3>
-                    <span className="text-xs text-gray-400 mt-1">Variation: {item.variant_name}</span>
+                    <span className="text-xs text-gray-400 mt-1">x{item.quantity}</span>
                   </div>
                 </div>
                 <div className="text-center text-sm font-medium">₱{(item.price || 0).toFixed(2)}</div>
@@ -362,17 +458,18 @@ export default function CartPage() {
           <Button className="w-full mt-6 h-12 bg-primary hover:bg-primary/90 text-lg font-bold" onClick={handleCheckout}>
             Check Out
           </Button>
-              <Button
-                className="w-full mt-4 h-12 bg-secondary hover:bg-secondary/90 text-lg font-bold text-primary"
-                onClick={() => router.push('/orders')}
-              >
-                Check your order
-              </Button>
             </div>
           </div>
         </div>
-        <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
      </main>
+    
+    {/* Footer */}
+    <footer className="text-gray-600 py-6 px-8 mt-32">
+      <div className="text-center text-sm">
+        <p>&copy; 2026 E-COM Group. All rights reserved.</p>
+        <p className="mt-2">For educational purposes only, and no copyright infringement is intended.</p>
+      </div>
+    </footer>
     </div>
   )
 }

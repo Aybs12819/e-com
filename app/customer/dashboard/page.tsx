@@ -39,14 +39,14 @@ export default async function Home() {
     })
   );
   return (
-    <main className="min-h-screen bg-slate-50 pb-20">
+    <main className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
       <HeroCarousel />
       <CategoryGrid />
 
       {/* Featured Products Placeholder Section */}
-      <section className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center justify-between border-b pb-4">
+      <section className="container mx-auto px-4 py-8 flex-grow">
+      <div className="mb-6 border-b pb-4">
           <h2 className="text-xl font-bold uppercase tracking-wider text-muted-foreground">Products</h2>
         </div>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
@@ -75,7 +75,14 @@ export default async function Home() {
           ))}
         </div>
       </section>
-      <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
+    
+    {/* Footer */}
+    <footer className="text-gray-600 py-6 px-8 mt-32">
+      <div className="text-center text-sm">
+        <p>&copy; 2026 E-COM Group. All rights reserved.</p>
+        <p className="mt-2">For educational purposes only, and no copyright infringement is intended.</p>
+      </div>
+    </footer>
     </main>
   )
 }

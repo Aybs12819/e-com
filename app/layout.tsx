@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "LinkHabi | Mapita Heritage E-commerce",
-  description: "Premium e-commerce platform for Mapita Community heritage products.",
+  title: "E-Com",
+  description: "Premium e-commerce platform for heritage products.",
   generator: "v0.app",
   icons: {
     icon: [

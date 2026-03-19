@@ -126,13 +126,18 @@ export default function AdminCustomProductsPage() {
       const { data, error } = await supabase
         .from("custom_products")
         .select(
-          "*, categories(id, name), customer_accounts(id, first_name, last_name, email)"
+          `
+          *,
+          categories:category_id(id, name),
+          customer_accounts:customer_id(id, first_name, last_name, email)
+          `
         )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       const mapped: CustomProduct[] = (data || []).map((cp: any) => ({
         ...cp,
+        base_price: cp.base_price ? Number(cp.base_price) : null,
         images: cp.images || [],
         categories: cp.categories || null,
         customer_accounts: cp.customer_accounts || null,
@@ -203,6 +208,7 @@ export default function AdminCustomProductsPage() {
   }, [toast]);
 
   useEffect(() => {
+    // console.log("useEffect in AdminCustomProductsPage is running.");
     fetchCustomProducts();
     fetchCategories();
     fetchCustomers();
@@ -253,8 +259,9 @@ export default function AdminCustomProductsPage() {
         image_urls: [],
         base_price: 0,
         slug: "",
+        customer_id: null, // Ensure customer_id is reset
       });
-      fetchCustomProducts();
+      fetchCustomProducts(); // Refresh the list after adding a product
     } catch (error: any) {
       toast({
         title: "Error adding custom product",
@@ -521,7 +528,7 @@ export default function AdminCustomProductsPage() {
 
                   <div>
                     <Label htmlFor="customer" className="mb-2">
-                      Customer (Optional)
+                      Customer
                     </Label>
                     <Select
                       onValueChange={(value: string) =>
@@ -636,6 +643,7 @@ export default function AdminCustomProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {/* {console.log("Custom Products for rendering:", customProducts)} */}
               {customProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="flex items-center gap-3">
@@ -669,17 +677,19 @@ export default function AdminCustomProductsPage() {
                       ? `₱${Number(product.base_price).toFixed(2)}`
                       : "—"}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {product.status || "Confirmed Order"}
-                    </Badge>
+                  <TableCell className="align-middle">
+                    <div className="flex items-center">
+                      <Badge variant="outline">
+                        {product.status || "Confirmed Order"}
+                      </Badge>
+                    </div>
                   </TableCell>
-                  <TableCell className="flex gap-2">
-
-                    <Dialog
-                      open={
-                        showEditForm && currentProductToEdit?.id === product.id
-                      }
+                  <TableCell>
+                    <div className="flex gap-2 items-center h-full">
+                      <Dialog
+                        open={
+                          showEditForm && currentProductToEdit?.id === product.id
+                        }
                       onOpenChange={(open) => setShowEditForm(open)}
                     >
                       <DialogTrigger asChild>
@@ -867,6 +877,7 @@ export default function AdminCustomProductsPage() {
                     >
                       <Trash2 className="h-4 w-4 mr-1" /> Delete
                     </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

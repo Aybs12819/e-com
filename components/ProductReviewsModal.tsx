@@ -44,6 +44,13 @@ export function ProductReviewsModal({ productId, isOpen, onClose }: ProductRevie
         }
 
         // Fetch variation names for each review
+        // Helper function to mask a name part
+        const maskName = (name: string | null | undefined) => {
+          if (!name) return "";
+          if (name.length <= 1) return name;
+          return name.charAt(0) + "*".repeat(name.length - 2) + name.slice(-1);
+        };
+
         const reviewsWithVariations = await Promise.all(reviewsData.map(async (review: any) => {
           let variationName = null;
           if (review.order_id && review.product_id) {
@@ -61,28 +68,30 @@ export function ProductReviewsModal({ productId, isOpen, onClose }: ProductRevie
             if (orderItemData?.variation_id) {
               const { data: productVariationData, error: productVariationError } = await supabase
                 .from("product_variations")
-                .select("name")
+                .select("variation_value")
                 .eq("id", orderItemData.variation_id)
                 .single();
 
               if (productVariationError && productVariationError.code !== 'PGRST116') {
-                console.error("Error fetching product variation name:", productVariationError);
+                console.error("Error fetching product variation name:", productVariationError.message);
               }
-              variationName = productVariationData?.name || null;
+              variationName = productVariationData?.variation_value || null;
             }
           }
 
           const customerFirstName = review.customer?.first_name;
           const customerMiddleName = review.customer?.middle_name;
           const customerLastName = review.customer?.last_name;
-          const customerFullName = [customerFirstName, customerMiddleName, customerLastName]
-            .filter(Boolean)
-            .join(' ');
 
-          // Mask customer name
-          const maskedCustomerName = customerFullName
-            ? customerFullName.charAt(0) + '*'.repeat(customerFullName.length - 2) + customerFullName.slice(-1)
-            : 'Anonymous';
+          // Mask individual name parts
+          const maskedFirstName = maskName(customerFirstName);
+          const maskedMiddleName = maskName(customerMiddleName);
+          const maskedLastName = maskName(customerLastName);
+
+          // Combine masked names, filtering out empty strings
+          const maskedCustomerName = [maskedFirstName, maskedMiddleName, maskedLastName]
+            .filter(Boolean)
+            .join(' ') || 'Anonymous';
 
           return {
             ...review,

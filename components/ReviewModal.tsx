@@ -18,6 +18,7 @@ interface ReviewModalProps {
   customerId: string;
   productId: string; // Add productId to props
   onReviewSubmitted?: () => void;
+  hasReviewed: boolean; // Add hasReviewed prop
 }
 
 export function ReviewModal({
@@ -25,6 +26,7 @@ export function ReviewModal({
   customerId,
   productId, // Destructure productId
   onReviewSubmitted,
+  hasReviewed, // Destructure hasReviewed
 }: ReviewModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [rating, setRating] = useState(0);
@@ -61,8 +63,8 @@ export function ReviewModal({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Write Review
+        <Button variant="outline" size="sm" disabled={hasReviewed}>
+          {hasReviewed ? "Review Submitted ✅" : "Write Review"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

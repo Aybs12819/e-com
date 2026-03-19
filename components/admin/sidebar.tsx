@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Package,
   Users,
-  Truck,
   BarChart3,
   PackageOpen,
   LogOut,
@@ -20,9 +20,7 @@ const menuItems = [
   { icon: Package, label: "Products", href: "/admin/products" },
   { icon: ShoppingBag, label: "Orders", href: "/admin/orders" },
   { icon: Users, label: "User Management", href: "/admin/users" },
-  { icon: Truck, label: "Logistics", href: "/admin/logistics" },
   { icon: BarChart3, label: "Sales Report", href: "/admin/sales-report" },
-  { icon: PackageOpen, label: "Custom Products", href: "/admin/custom-products" },
 ];
 
 export function AdminSidebar() {
@@ -42,7 +40,15 @@ export function AdminSidebar() {
           href="/admin"
           className="flex items-center gap-2 text-xl font-bold text-primary"
         >
-          <div className="rounded bg-accent p-1 text-accent-foreground">LH</div>
+          <div className="rounded p-1">
+            <img 
+              src="/e-com.png" 
+              alt="Admin Logo" 
+              width={48} 
+              height={48}
+              className="object-contain"
+            />
+          </div>
           <span>Admin Panel</span>
         </Link>
       </div>

@@ -5,16 +5,16 @@ import { AdminSidebar } from "@/components/admin/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Package, Users, Truck, ShoppingBag, ShoppingCart, AlertTriangle } from "lucide-react"
+import { Package, Users, ShoppingBag, ShoppingCart, AlertTriangle } from "lucide-react"
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import Image from "next/image";
 
 export default function AdminDashboard() {
   const supabaseClient = supabase;
   const [stats, setStats] = useState([
     { label: "Total Products", value: "0", icon: Package, color: "text-blue-600" },
     { label: "Active Customers", value: "0", icon: Users, color: "text-emerald-600" },
-    { label: "Pending Deliveries", value: "0", icon: Truck, color: "text-amber-600" },
     { label: "Daily Orders", value: "0", icon: ShoppingCart, color: "text-purple-600" },
   ]);
 
@@ -77,12 +77,6 @@ console.log(user?.app_metadata)
 
       // Fallback to 'N/A' if count is null/zero to indicate query issues
       const formattedCustomerCount = activeCustomers !== null ? activeCustomers.toString() : 'N/A';
-
-      // Fetch Pending Deliveries
-      const { count: pendingDeliveries } = await supabaseClient
-        .from('orders')
-        .select('*', { count: 'exact' })
-
 
       // Fetch Daily Orders and sum their total
       const today = new Date();
@@ -163,7 +157,6 @@ console.log(user?.app_metadata)
       setStats([
         { label: "Total Products", value: totalProducts?.toString() || '0', icon: Package, color: "text-blue-600" },
         { label: "Active Customers", value: formattedCustomerCount, icon: Users, color: "text-emerald-600" },
-        { label: "Pending Deliveries", value: pendingDeliveries?.toString() || '0', icon: Truck, color: "text-amber-600" },
         { label: "Daily Orders", value: `₱${dailyOrdersTotal.toLocaleString()}`, icon: ShoppingCart, color: "text-purple-600" },
       ]);
     };
@@ -177,30 +170,30 @@ console.log(user?.app_metadata)
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 flex-col">
       <AdminSidebar />
-      <main className="ml-64 flex-1 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-          <p className="text-sm text-muted-foreground">Welcome back, Admin. Here's what's happening today.</p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent className="overflow-y-auto max-h-[300px]">
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="col-span-1">
+      <div className="flex-1 flex flex-col">
+        <main className="ml-64 flex-1 p-8">
+          <div className="mb-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                          <p className="text-2xl font-bold">{stat.value}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+          <Card className="col-span-2">
             <CardHeader>
               <CardTitle>Recent Orders</CardTitle>
             </CardHeader>
@@ -236,9 +229,11 @@ console.log(user?.app_metadata)
                     return (
                       <TableRow key={order.id}>
                         <TableCell>
-                          <div className="font-medium">{fullName}</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            {contact}
+                          <div>
+                            <div className="font-medium">{fullName}</div>
+                            <div className="hidden text-sm text-muted-foreground md:inline">
+                              {contact}
+                            </div>
                           </div>
                         </TableCell>
 
@@ -303,15 +298,25 @@ console.log(user?.app_metadata)
                         </p>
                       </div>
                     ))}
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground">No low stock alerts.</p>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">No low stock alerts.</p>
+          )}
+        </CardContent>
+      </Card>
         </div>
+      </div>
       </main>
+      
+      {/* Footer */}
+      <footer className="py-8 px-8">
+        <div className="text-center text-gray-400 text-sm">
+          <p>&copy; 2026 E-COM Group. All rights reserved.</p>
+          <p className="mt-2">For educational purposes only, and no copyright infringement is intended.</p>
+        </div>
+      </footer>
+    </div>
     </div>
   )
 }

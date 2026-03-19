@@ -155,7 +155,7 @@ export default function DeliveryCard({ delivery }: DeliveryCardProps) {
             <span>
               ₱
               {isCustomProduct
-                ? (referenceData as any)?.base_price?.toFixed(2)
+                ? (Number((referenceData as any)?.base_price) || 0).toFixed(2)
                 : (referenceData as any)?.total_amount?.toFixed(2) || "N/A"}
             </span>
           </div>

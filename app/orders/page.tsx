@@ -3,14 +3,14 @@
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Truck, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { createBrowserClient } from "@supabase/ssr";
-import { Product } from "@/lib/types"; // Import Product interface
+import { Product } from "@/lib/types";
 import { getEstimatedDays } from "@/lib/shipping";
 import { ReviewModal } from "@/components/ReviewModal";
-import Script from "next/script";
+import Image from "next/image";
 
 interface ProductVariation {
   id: string;
@@ -29,10 +29,10 @@ interface OrderItem {
   quantity: number;
   price: number;
   product_id: string;
-  variation_id: string | null;
-  products: Product | null;
-  product_variations: ProductVariation | null;
-  custom_products: any | null; // Add custom products support
+  variation_id: string;
+  products: any | null;
+  custom_products: any | null;
+  product_variations: any | null;
 }
 
 interface Order {
@@ -42,38 +42,33 @@ interface Order {
   status:
     | "pending"
     | "confirmed order"
-    | "delivery rider assigned"
     | "completed";
   shipping_address: any;
   created_at: string;
   updated_at: string;
   order_items: OrderItem[];
-  shipping_fee: number; // Add shipping_fee to the Order interface
+  shipping_fee: number;
 }
 
 interface CustomProduct {
   id: string;
-  category_id: string | null;
   name: string;
-  slug: string;
-  description: string | null;
   base_price: number;
+  description: string | null;
   images: string[];
   status: string;
+  customer_id: string;
   created_at: string;
   updated_at: string;
-  customer_id: string | null;
 }
 
-export default function MyOrdersPage() {
+export default function OrdersPage() {
+  const [session, setSession] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customProducts, setCustomProducts] = useState<CustomProduct[]>([]);
-  const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const supabaseClient = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const [activeTab, setActiveTab] = useState("all");
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set());
+  const supabaseClient = supabase;
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -98,9 +93,22 @@ export default function MyOrdersPage() {
         return;
       }
 
+      // Fetch existing reviews for customer
+      const { data: reviewsData, error: reviewsError } = await supabaseClient
+        .from("reviews")
+        .select("product_id")
+        .eq("customer_id", customerId);
+
+      if (reviewsError) {
+        console.error("Error fetching reviews:", reviewsError);
+      } else if (reviewsData) {
+        const reviewedIds = new Set(reviewsData.map((review) => review.product_id));
+        setReviewedProductIds(reviewedIds);
+      }
+
       const { data: ordersData, error } = await supabaseClient
         .from("orders")
-        .select("*, shipping_fee") // Select shipping_fee
+        .select("*, shipping_fee")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false });
 
@@ -115,8 +123,6 @@ export default function MyOrdersPage() {
 
       const ordersWithItems = await Promise.all(
         validOrders.map(async (order: Order) => {
-          // console.log("Fetching order items for order.id:", order.id);
-
           const { data: orderItemsData, error: orderItemsError } =
             await supabaseClient
               .from("order_items")
@@ -132,7 +138,6 @@ export default function MyOrdersPage() {
 
           const orderItemsWithDetails = (orderItemsData || []).map(
             (item: any) => {
-              // Check if this is a custom product
               const isCustomProduct =
                 item.custom_products && item.custom_products.id;
               const productData = isCustomProduct
@@ -158,7 +163,6 @@ export default function MyOrdersPage() {
             (sum, item) => sum + item.price * item.quantity,
             0
           );
-          // Use the shipping_fee directly from the order object
           const shippingFee = order.shipping_fee;
 
           return {
@@ -188,7 +192,7 @@ export default function MyOrdersPage() {
     };
 
     fetchOrders();
-  }, [session?.user?.id]); // Depend on session.user.id directly
+  }, [session?.user?.id]);
 
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "all") return true;
@@ -197,11 +201,9 @@ export default function MyOrdersPage() {
 
   const filteredCustomProducts = customProducts.filter((product) => {
     if (activeTab === "all") return true;
-    // Map order statuses to custom product statuses
     const statusMapping: { [key: string]: string } = {
       pending: "Pending",
       "confirmed order": "Confirmed Order",
-      "delivery rider assigned": "Delivery Rider Assigned",
       completed: "Completed",
     };
     return (
@@ -244,12 +246,6 @@ export default function MyOrdersPage() {
               Confirmed Order
             </TabsTrigger>
             <TabsTrigger
-              value="delivery rider assigned"
-              className="data-[state=active]:border-primary data-[state=active]:text-primary border-b-2 border-transparent rounded-none px-4 bg-transparent"
-            >
-              Delivery Rider Assigned
-            </TabsTrigger>
-            <TabsTrigger
               value="completed"
               className="data-[state=active]:border-primary data-[state=active]:text-primary border-b-2 border-transparent rounded-none px-4 bg-transparent"
             >
@@ -278,77 +274,12 @@ export default function MyOrdersPage() {
                       <span className="font-bold text-sm">
                         Order ID: {order.id}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-emerald-600" />
-                      <span className="text-xs text-emerald-600 font-medium">
-                        {order.status}
-                      </span>
-                      {order.status === "delivery rider assigned" && (
-                        <span className="text-xs text-gray-500">
-                          {(() => {
-                            try {
-                              let municipality = "";
-                              let region = "";
 
-                              // Handle different shipping_address formats
-                              if (typeof order.shipping_address === "string") {
-                                try {
-                                  // Try to parse as JSON first
-                                  const parsed = JSON.parse(
-                                    order.shipping_address
-                                  );
-                                  if (parsed.municipality && parsed.region) {
-                                    municipality = parsed.municipality;
-                                    region = parsed.region;
-                                  } else {
-                                    // Fall back to string splitting
-                                    const parts =
-                                      order.shipping_address.split(", ");
-                                    if (parts.length >= 2) {
-                                      municipality = parts[0].trim();
-                                      region = parts[1].trim();
-                                    }
-                                  }
-                                } catch (jsonError) {
-                                  // If JSON parsing fails, try string splitting
-                                  const parts =
-                                    order.shipping_address.split(", ");
-                                  if (parts.length >= 2) {
-                                    municipality = parts[0].trim();
-                                    region = parts[1].trim();
-                                  }
-                                }
-                              } else if (
-                                typeof order.shipping_address === "object" &&
-                                order.shipping_address !== null
-                              ) {
-                                municipality =
-                                  order.shipping_address.municipality || "";
-                                region = order.shipping_address.region || "";
-                              }
-
-                              const days = getEstimatedDays(
-                                region,
-                                municipality
-                              );
-
-                              if (days) {
-                                return `Estimated arrival: ${days}-${
-                                  days + 1
-                                } days`;
-                              }
-                            } catch (e) {
-                              console.error(
-                                "Error parsing shipping address:",
-                                e
-                              );
-                            }
-                            return "";
-                          })()}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-emerald-600 font-medium">
+                          {order.status}
                         </span>
-                      )}
-
+                      </div>
                     </div>
                   </div>
 
@@ -380,6 +311,12 @@ export default function MyOrdersPage() {
                               orderId={order.id}
                               customerId={order.customer_id}
                               productId={item.product_id}
+                              hasReviewed={reviewedProductIds.has(item.product_id)}
+                              onReviewSubmitted={() =>
+                                setReviewedProductIds((prev) =>
+                                  new Set(prev).add(item.product_id)
+                                )
+                              }
                             />
                           )}
                         </div>
@@ -391,7 +328,6 @@ export default function MyOrdersPage() {
                   ))}
 
                   <div className="p-4 bg-slate-50/50">
-                    {/* Calculate subtotal for the current order */}
                     {(() => {
                       const orderSubtotal = order.order_items.reduce(
                         (sum, item) => sum + item.price * item.quantity,
@@ -420,9 +356,9 @@ export default function MyOrdersPage() {
                         </>
                       );
                     })()}
-                    </div>
                   </div>
-                ))}
+                </div>
+              ))}
 
               {/* Render Custom Products */}
               {filteredCustomProducts.map((product) => (
@@ -437,23 +373,9 @@ export default function MyOrdersPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-emerald-600" />
                       <span className="text-xs text-emerald-600 font-medium">
                         {product.status}
                       </span>
-                      {product.status === "Delivery Rider Assigned" && (
-                        <span className="text-xs text-gray-500">
-                          Estimated delivery: 3-5 days
-                        </span>
-                      )}
-                      {product.status === "Completed" &&
-                        product.customer_id && (
-                          <ReviewModal
-                            orderId={product.id}
-                            customerId={product.customer_id}
-                            productId={product.id}
-                          />
-                        )}
                     </div>
                   </div>
 
@@ -495,8 +417,15 @@ export default function MyOrdersPage() {
             </>
           )}
         </div>
-        <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
-     </main>
+      </main>
+
+      {/* Footer */}
+      <footer className="text-gray-600 py-6 px-8 mt-32">
+        <div className="text-center text-sm">
+          <p>&copy; 2026 E-COM Group. All rights reserved.</p>
+          <p className="mt-2">For educational purposes only, and no copyright infringement is intended.</p>
+        </div>
+      </footer>
     </div>
   );
 }

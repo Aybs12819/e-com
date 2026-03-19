@@ -29,7 +29,7 @@ export async function POST(req: Request) {
             slug: customProductData.slug,
             base_price: customProductData.base_price,
             status: "Confirmed Order", // Default status for new custom products
-            customer_id: customProductData.customer_id || null,
+            customer_id: customProductData.customer_id === "" ? null : customProductData.customer_id,
           },
         ])
         .select("id");
@@ -155,13 +155,10 @@ export async function GET(req: Request) {
 
     if (customProductsError) {
       console.error("Error fetching custom products:", customProductsError);
-      return NextResponse.json(
-        { error: customProductsError.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: customProductsError.message }, { status: 500 });
     }
 
-    return NextResponse.json(customProducts, { status: 200 });
+    return NextResponse.json(customProducts);
   } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

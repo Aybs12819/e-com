@@ -112,7 +112,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
 
   return (
     <div className="container mx-auto p-4">
-      <Script src="https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js" strategy="afterInteractive" />
       <h1 className="text-2xl font-bold mb-4">Order Details</h1>
       <div className="bg-white shadow-md rounded-lg p-6">
         <p>

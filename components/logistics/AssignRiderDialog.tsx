@@ -65,7 +65,7 @@ export function AssignRiderDialog({
           body: JSON.stringify({
             customProductId: orderId,
             customProductData: {
-              status: "assigned",
+              status: "delivery rider assigned",
               rider_id: selectedRider,
             },
           }),
@@ -83,7 +83,7 @@ export function AssignRiderDialog({
           .from("orders")
           .update({
             rider_id: selectedRider,
-            status: "assigned",
+            status: "delivery rider assigned",
           })
           .eq("id", orderId);
 

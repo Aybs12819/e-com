@@ -27,16 +27,13 @@ const Index = () => {
   );
   const [orders, setOrders] = useState<Order[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getData = async () => {
-      setLoading(true);
       const fetchedOrders = await fetchSalesData(dateRange);
       setOrders(fetchedOrders);
       const fetchedChartData = await fetchSalesChartData(dateRange);
       setChartData(fetchedChartData);
-      setLoading(false);
     };
     getData();
   }, [dateRange]);
@@ -47,17 +44,6 @@ const Index = () => {
     totalOrders,
     avgOrderValueWithoutShipping,
   } = calculateMetrics(orders, dateRange);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen bg-background">
-        <AdminSidebar />
-        <main className="ml-64 flex-1 p-8">
-          <p>Loading sales data...</p>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-background">

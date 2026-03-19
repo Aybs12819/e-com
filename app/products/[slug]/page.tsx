@@ -232,14 +232,12 @@ export default function ProductDetailPage() {
         );
 
         if (matchedCombination) {
-          setDisplayStock(matchedCombination.stock);
+          setDisplayPrice(matchedCombination.price);
         } else {
-          setDisplayStock(0); // Or some other default if no match
+          setDisplayPrice(product.base_price); // Revert to base price if no match
         }
       } else {
-        // If no variants are selected, display the total stock
-        const totalStock = product.variantCombinations.reduce((total: number, combination: any) => total + combination.stock, 0);
-        setDisplayStock(totalStock);
+        setDisplayPrice(product.base_price); // If no variants are selected, display the base price
       }
     }
   }, [selectedVariants, product]);
@@ -594,7 +592,6 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
-        <script src='https://cdn.jotfor.ms/agent/embedjs/019b997bc1ef7a0c91310092ab9900534bfe/embed.js'></script>
      </main>
       {product && (
         <ProductReviewsModal

@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useEffect, useState, useRef } from "react"
@@ -14,12 +16,15 @@ export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const router = useRouter();
 
   useEffect(() => {
     const checkAuth = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
+      console.log("Supabase user:", user);
       setUser(user)
     }
     checkAuth()
@@ -57,25 +62,44 @@ export default function LandingPage() {
     }
   };
 
+  const handleExploreProducts = async () => {
+    setIsLoading(true);
+    // Simulate loading delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    router.push('/customer/products');
+  };
+
   return (
     <PWAProvider>
-      <div className="min-h-screen flex flex-col bg-white">
+      <div className="min-h-screen flex flex-col bg-white relative">
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 shadow-xl">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
           <nav className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#003DA5] to-[#001F3F] flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
-              <div>
-                <div className="text-xl font-bold text-[#001F3F]">Mapita</div>
-                <div className="text-xs text-gray-500">Community</div>
+              <div className="w-16 h-16 rounded-lg flex items-center justify-center">
+                <Image 
+                  src="/e-com.png" 
+                  alt="E-COM Logo" 
+                  width={64} 
+                  height={64}
+                  className="object-contain"
+                />
               </div>
             </div>
             <div className="flex gap-2 md:gap-4">
               {user ? (
                 <>
-                  <Link href="/products">
+                  <Link href="/customer/products">
                     <Button variant="ghost" className="text-gray-700 hover:text-[#003DA5]">
                       Shop
                     </Button>
@@ -119,16 +143,24 @@ export default function LandingPage() {
                   culture, and community passed down through generations.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/customer/dashboard">
-                    <Button
-                      size="lg"
+                  <Button
+                    size="lg"
                       className="bg-[#FFB81C] text-[#001F3F] hover:bg-yellow-400 text-base px-8 font-semibold group"
+                      onClick={handleExploreProducts}
+                      disabled={isLoading}
                     >
-                      Explore Products
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          Explore Products
+                          <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
                     </Button>
-                  </Link>
-                  
                 </div>
               </div>
               <div className="hidden md:block relative h-96">
@@ -279,15 +311,24 @@ export default function LandingPage() {
             <p className="text-xl text-gray-100 mb-10 leading-relaxed">
               Browse our collection of authentic handwoven textiles and connect with our vibrant Mapita community.
             </p>
-            <Link href="/customer/dashboard">
-              <Button
+            <Button
                 size="lg"
                 className="bg-[#FFB81C] text-[#001F3F] hover:bg-yellow-400 text-base px-8 font-semibold group"
+                onClick={handleExploreProducts}
+                disabled={isLoading}
               >
-                Start Shopping Now
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    Start Shopping Now
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </Button>
-            </Link>
           </div>
         </section>
 
@@ -297,10 +338,15 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-3 gap-12 mb-12">
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#FFB81C] flex items-center justify-center">
-                    <span className="text-[#001F3F] font-bold">M</span>
+                  <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-white shadow-lg">
+                    <Image 
+                      src="/e-com.png" 
+                      alt="E-COM Logo" 
+                      width={60} 
+                      height={60}
+                      className="object-contain"
+                    />
                   </div>
-                  <span className="text-lg font-bold">Mapita Community</span>
                 </div>
                 <p className="text-gray-300 text-sm leading-relaxed">
                   Preserving the weaving heritage of Mapita, one thread at a time.
@@ -311,27 +357,23 @@ export default function LandingPage() {
                 <h4 className="font-bold text-lg mb-4">Contact</h4>
                 <ul className="space-y-2 text-gray-300 text-sm">
                   <li>📍 Sitio of Mapita, Aguilar, Pangasinan</li>
-                  <li>📞 0916 427 8955</li>
-                  <li>📧 shirleymallari27@gmail.com</li>
+                  <li>📞 +1 (555) 123-4567</li>
+                  <li>📧 contact@ecom.com</li>
                 </ul>
               </div>
 
               <div>
                 <h4 className="font-bold text-lg mb-4">Follow Us</h4>
                 <div className="flex gap-4">
-                  <a
-                    href="https://www.facebook.com/shirly.cambay"
-                    className="w-10 h-10 bg-gray-700 hover:bg-[#FFB81C] rounded-lg flex items-center justify-center transition-colors"
-                  >
+                  <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
                     <span className="text-white">f</span>
-                  </a>
-                 
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="border-t border-gray-700 pt-8 text-center text-gray-400 text-sm">
-              <p>&copy; 2025 Mapita Community. All rights reserved. Preserving Mapita's heritage.</p>
+              <p className="mt-2">For educational purposes only, and no copyright infringement is intended.</p>
             </div>
           </div>
         </footer>
