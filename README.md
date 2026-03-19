@@ -1,8 +1,8 @@
-# E-commerce Platform LinkHabi
+# E-Com
 
 A modern e-commerce platform built with Next.js, TypeScript, and Tailwind CSS.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ivans-projects-754c9c55/v0-e-commerce-platform-link-habi)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ivans-projects-754c9c55/e-com)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/mFVff5IdzY1)
 
 ## 🚀 Live Demo
@@ -11,11 +11,9 @@ A modern e-commerce platform built with Next.js, TypeScript, and Tailwind CSS.
 
 ## 📋 Features
 
-- **Multi-role Authentication**: Admin, Customer, Logistics, Rider
-- **Product Management**: Custom products with variants, pricing, and inventory
+- **Multi-role Authentication**: Admin, Customer
 - **Order Management**: Complete order lifecycle with tracking
 - **Sales Analytics**: Comprehensive sales reports and metrics
-- **Delivery System**: Rider assignment and delivery tracking
 - **Responsive Design**: Mobile-first design with modern UI
 
 ## 🛠️ Tech Stack
@@ -39,8 +37,8 @@ A modern e-commerce platform built with Next.js, TypeScript, and Tailwind CSS.
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Aybs12819/v0-e-commerce-platform-link-habi.git
-   cd v0-e-commerce-platform-link-habi
+   git clone https://github.com/Aybs12819/e-com.git
+   cd e-com
    ```
 
 2. **Install dependencies**
@@ -79,13 +77,6 @@ A modern e-commerce platform built with Next.js, TypeScript, and Tailwind CSS.
    
    Navigate to [http://localhost:3000](http://localhost:3000)
 
-## 🔐 Admin Credentials
-
-Use these credentials to access the admin dashboard:
-
-- **Email**: `fernandezivan140@gmail.com`
-- **Password**: `admin123`
-
 ### Accessing Admin Panel
 
 1. Go to the homepage
@@ -101,13 +92,9 @@ Use these credentials to access the admin dashboard:
 │   ├── auth/               # Authentication pages
 │   ├── cart/               # Shopping cart
 │   ├── customer/           # Customer dashboard
-│   ├── logistics/          # Logistics management
-│   └── rider/              # Rider interface
 ├── components/             # Reusable components
 │   ├── admin/              # Admin-specific components
 │   ├── customer/           # Customer components
-│   ├── logistics/          # Logistics components
-│   ├── rider/              # Rider components
 │   ├── sales/              # Sales-related components
 │   └── ui/                 # Base UI components
 ├── lib/                    # Utility functions and types
@@ -131,17 +118,6 @@ Use these credentials to access the admin dashboard:
 - Account management
 - Product reviews
 
-### Logistics
-- Rider assignment and management
-- Delivery tracking
-- Route optimization
-- Delivery status updates
-
-### Rider
-- View assigned deliveries
-- Update delivery status
-- Navigation support
-- Earnings tracking
 
 ## 🚀 Deployment
 
@@ -177,7 +153,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues:
 
-1. Check the [Issues](https://github.com/Aybs12819/v0-e-commerce-platform-link-habi/issues) page
+1. Check the [Issues](https://github.com/Aybs12819/e-com/issues) page
 2. Create a new issue with detailed description
 3. Include screenshots if applicable
 
