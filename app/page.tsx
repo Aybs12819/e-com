@@ -176,16 +176,22 @@ export default function LandingPage() {
               <div className="hidden md:block relative h-96">
                 <video
                   ref={videoRef}
-                  src="/sitio_mapita.mp4"
                   loop
                   playsInline
-                  muted={isMuted}
-                  onClick={handleVideoClick}
+                  muted
+                  autoPlay
                   className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer"
                   controls
                   preload="metadata"
-                />
-              </div>
+                  onError={(e) => {
+                    console.log("VIDEO ERROR:", e);
+                    const video = e.currentTarget;
+                    console.log("Error code:", video.error?.code);
+                    console.log("Error message:", video.error?.message);
+                  }}
+                >
+                  <source src="/sitio_mapita.mp4" type="video/mp4" />
+                </video>
             </div>
           </div>
         </section>
