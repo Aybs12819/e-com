@@ -93,12 +93,12 @@ export default function LandingPage() {
           video.muted = true;
           setIsMuted(true);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.log("Video play error:", error);
         // Handle AbortError specifically - this happens when play is interrupted
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           console.log("Play request was interrupted, video state:", !video.paused ? 'playing' : 'paused');
-        } else if (error.name === 'NotSupportedError') {
+        } else if (error instanceof Error && error.name === 'NotSupportedError') {
           console.log("Video source not supported, checking file...");
         }
       }
