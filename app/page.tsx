@@ -60,6 +60,9 @@ export default function LandingPage() {
       if (videoRef.current.paused) {
         videoRef.current.play().catch(error => {
           console.log("Video play error:", error);
+          if (error.name === 'NotSupportedError') {
+            console.log("Video source not supported, checking file...");
+          }
         });
       } else {
         videoRef.current.pause();
@@ -180,6 +183,7 @@ export default function LandingPage() {
                   onClick={handleVideoClick}
                   className="w-full h-full object-cover rounded-2xl shadow-2xl cursor-pointer"
                   controls
+                  preload="metadata"
                 />
               </div>
             </div>
